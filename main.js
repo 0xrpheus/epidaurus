@@ -7,5 +7,6 @@ if (!renderDiv) {
 } else {
     // Initialize the game with the render target
     var game = new Game(renderDiv);
-// The game now initializes and starts automatically from its constructor.
+    // Expose game instance globally so UI controls (tremor slider, etc.) can access it
+    window._game = game;
 }

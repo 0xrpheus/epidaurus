@@ -570,7 +570,7 @@
         <aside id="sidebar">
 
             <div class="sidebar-logo">
-                <div class="app-name">arpeggiator</div>
+                <div class="app-name">Epidaurus</div>
                 <div class="app-tagline">hand-controlled music instrument</div>
                 <div class="status-row">
                     <div class="status-dot"></div>
@@ -580,7 +580,7 @@
 
             <!-- MODE -->
             <div class="sidebar-section">
-                <div class="section-label">// mode</div>
+                <div class="section-label">MODE</div>
                 <div class="mode-options">
 
                     <div class="mode-option">
@@ -619,7 +619,7 @@
                     <span class="hand-tag h1">hand 1</span>
                     <span class="hand-desc">arpeggio</span>
                 </div>
-                <div class="section-label">// instrument</div>
+                <div class="section-label">INSTRUMENT</div>
                 <div class="finger-list">
 
                     <div class="finger-row">
@@ -650,7 +650,7 @@
                     <span class="hand-tag h2">hand 2</span>
                     <span class="hand-desc">drums</span>
                 </div>
-                <div class="section-label">// finger assignment</div>
+                <div class="section-label">FINGER ASSIGNMENT</div>
                 <div class="finger-list">
 
                     <div class="finger-row">
@@ -714,7 +714,7 @@
 
             <!-- TREMOR SMOOTHING -->
             <div class="sidebar-section">
-                <div class="section-label">// accessibility</div>
+                <div class="section-label">ACCESSIBILITY</div>
                 <div class="slider-row">
                     <div class="slider-header">
                         <span class="slider-name">Tremor Smoothing</span>
@@ -740,8 +740,7 @@
             </div>
 
             <div id="logo-container">
-                <span id="logo">🪬</span>
-                <a href="https://funwithcomputervision.com/" target="_blank">code & tutorials</a>
+                <span id="logo">🥁</span>
             </div>
 
 
@@ -761,12 +760,15 @@
         const slider = document.getElementById('smoothing-slider');
         const valDisplay = document.getElementById('smoothing-val');
         slider.addEventListener('input', () => {
-            valDisplay.textContent = slider.value + '%';
-            // wire to game smoothingFactor when game.js is ready:
-            // window._game && (_game.smoothingFactor = slider.value / 100);
+            const pct = parseInt(slider.value, 10);
+            valDisplay.textContent = pct + '%';
+            // slider 1–99 where higher = more smoothing
+            // smoothingFactor is the alpha: smaller = more smoothing
+            if (window._game) {
+                window._game.smoothingFactor = 1 - (pct / 100);
+            }
         });
     </script>
-
     <script type="module" src="main.js"></script>
 </body>
 
