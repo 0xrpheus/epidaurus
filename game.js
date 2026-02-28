@@ -1373,6 +1373,18 @@ export var Game = /*#__PURE__*/ function () {
                         _this._restartGame();
                     }
                 });
+                // Dynamic Drum Mapping (Dropdowns)
+                var fingerIds = ['f-index', 'f-middle', 'f-ring', 'f-pinky'];
+                fingerIds.forEach(function(id) {
+                    var selectElement = document.getElementById(id);
+                    if (selectElement) {
+                        selectElement.addEventListener('change', function(event) {
+                            var fingerName = id.replace('f-', ''); // e.g., 'f-index' -> 'index'
+                            var instrument = event.target.value;
+                            drumManager.updateFingerMapping(fingerName, instrument);
+                        });
+                    }
+                });
                 console.log('Game event listeners set up.');
             }
         }

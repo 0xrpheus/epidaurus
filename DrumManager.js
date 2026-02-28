@@ -120,7 +120,7 @@ var drumPattern = {
         true,
         false,
         false,
-        true,
+        false,
         false,
         false,
         false,
@@ -225,6 +225,17 @@ var fingerToDrumMap = {
         }
     }
 }
+/**
+ * Updates the mapping for a specific finger.
+ * @param {string} finger - 'index', 'middle', 'ring', or 'pinky'
+ * @param {string} instrument - 'kick', 'snare', 'hihat', 'clap', or 'none'
+ */ export function updateFingerMapping(finger, instrument) {
+        if (instrument === 'none') {
+            delete fingerToDrumMap[finger];
+        } else {
+            fingerToDrumMap[finger] = instrument;
+        }
+    }
 /**
  * Returns the set of currently active drums.
  * @returns {Set<string>} A set of active drum names.
