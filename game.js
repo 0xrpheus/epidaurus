@@ -267,6 +267,7 @@ export var Game = /*#__PURE__*/ function () {
             snare: new THREE.Color("#F36E2F"),
             clap: new THREE.Color("#7B4394"),
             hihat: new THREE.Color("#84C34E"),
+            bass_synth: new THREE.Color("#0d2c51"),
             off: new THREE.Color("#ffffff") // Off state remains white
         };
         this.beatIndicatorGroup = null; // Group to hold all indicators for easy repositioning
@@ -313,7 +314,8 @@ export var Game = /*#__PURE__*/ function () {
             new THREE.Color("#84C34E"),
             new THREE.Color("#F36E2F"),
             new THREE.Color("#D72828"),
-            new THREE.Color("#66ffff")
+            new THREE.Color("#66ffff"),
+            new THREE.Color("#0d2c51")
         ];
         // Initialize asynchronously
         this._init().catch(function (error) {
@@ -1321,7 +1323,8 @@ export var Game = /*#__PURE__*/ function () {
                     'kick',
                     'snare',
                     'clap',
-                    'hihat'
+                    'hihat',
+                    'bass_synth'
                 ];
                 this.beatIndicators.forEach(function (indicator, i) {
                     // Determine the color for this step based on active drums

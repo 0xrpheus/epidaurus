@@ -129,6 +129,24 @@ var drumPattern = {
         false,
         false,
         false
+    ],
+    'bass_synth' : [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false
     ]
 };
 var fingerToDrumMap = {
@@ -151,7 +169,8 @@ var fingerToDrumMap = {
                 kick: 'assets/kick.wav',
                 snare: 'assets/snare.wav',
                 hihat: 'assets/hihat.wav',
-                clap: 'assets/clap.wav'
+                clap: 'assets/clap.wav',
+                bass_synth: 'assets/bass_synth.wav'
             },
             onload: function() {
                 isLoaded = true;
@@ -160,6 +179,7 @@ var fingerToDrumMap = {
                 players.player('snare').volume.value = 0;
                 players.player('hihat').volume.value = -2; // Softer hi-hat
                 players.player('clap').volume.value = 0;
+                players.player('bass_synth').volume.value = 0;
                 console.log("Drum samples loaded successfully.");
                 resolve();
             },
