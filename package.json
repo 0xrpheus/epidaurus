@@ -1,0 +1,26 @@
+{
+    "name": "arpeggiator",
+    "version": "1.0.0",
+    "description": "Hand-controlled arpeggiator, drum machine, and audio reactive visualizer. Raise your hands to raise the roof!",
+    "main": "electron-main.js",
+    "scripts": {
+        "start": "electron .",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/0xrpheus/epidaurus.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "bugs": {
+        "url": "https://github.com/0xrpheus/epidaurus/issues"
+    },
+    "homepage": "https://github.com/0xrpheus/epidaurus#readme",
+    "devDependencies": {
+        "electron": "^40.6.1",
+        "electron-builder": "^26.8.1"
+    }
+}

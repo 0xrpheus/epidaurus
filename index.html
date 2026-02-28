@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arpeggiator</title>
+
+    <meta name="title" content="Arpeggiator">
+    <meta name="description" content="hand-controlled arp, drum machine, real-time visualizer">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://collidingscopes.github.io/arpeggiator/">
+    <meta property="og:title" content="Arpeggiator">
+    <meta property="og:description" content="hand-controlled arp, drum machine, real-time visualizer">
+    <meta property="og:image"
+        content="https://raw.githubusercontent.com/collidingScopes/arpeggiator/main/assets/siteOGImage.webp">
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://collidingscopes.github.io/arpeggiator/">
+    <meta property="twitter:title" content="Arpeggiator">
+    <meta property="twitter:description" content="hand-controlled arp, drum machine, real-time visualizer">
+    <meta property="twitter:image"
+        content="https://raw.githubusercontent.com/collidingScopes/arpeggiator/main/assets/siteOGImage.webp">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="eb59c81c-27cb-4e1d-9e8c-bfbe70c48cd9"></script>
+    <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://esm.sh/three@0.161.0?dev",
+                    "three/": "https://esm.sh/three@0.161.0&dev/"
+                }
+            }
+        </script>
+
+    <style>
+        :root {
+            --eva-purple: #7B4394;
+            --eva-green: #84C34E;
+            --eva-orange: #F36E2F;
+            --eva-red: #D72828;
+            --sidebar-w: 260px;
+            --bg: #0a0a0f;
+            --panel: rgba(10, 10, 20, 0.85);
+            --border: rgba(123, 67, 148, 0.4);
+            --border-bright: rgba(123, 67, 148, 0.9);
+            --text-primary: #e8e0f0;
+            --text-dim: #7a6e8a;
+            --mono: 'Share Tech Mono', monospace;
+            --sans: 'Barlow', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg);
+            font-family: var(--sans);
+            color: var(--text-primary);
+        }
+
+        /* ── layout ── */
+        #app {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* ─�� sidebar ── */
+        #sidebar {
+            width: var(--sidebar-w);
+            height: 100%;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            flex-shrink: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        #sidebar::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        #sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #sidebar::-webkit-scrollbar-thumb {
+            background: var(--eva-purple);
+            border-radius: 2px;
+        }
+
+        .sidebar-logo {
+            padding: 20px 18px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-logo .app-name {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--eva-green);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .sidebar-logo .app-tagline {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 0.05em;
+            margin-top: 3px;
+            font-weight: 300;
+        }
+
+        .sidebar-section {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-label {
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        /* ── mode radio buttons ── */
+        .mode-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mode-option {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .mode-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .mode-option label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .mode-option label:hover {
+            border-color: var(--eva-purple);
+            color: var(--text-primary);
+            background: rgba(123, 67, 148, 0.08);
+        }
+
+        .mode-option input[type="radio"]:checked+label {
+            border-color: var(--eva-purple);
+            color: var(--eva-purple);
+            background: rgba(123, 67, 148, 0.12);
+        }
+
+        .radio-dot {
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid currentColor;
+            border-radius: 50%;
+            flex-shrink: 0;
+            position: relative;
+            transition: all 0.15s ease;
+        }
+
+        .mode-option input[type="radio"]:checked+label .radio-dot::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 5px;
+            height: 5px;
+            background: var(--eva-purple);
+            border-radius: 50%;
+        }
+
+        .mode-badge {
+            margin-left: auto;
+            font-family: var(--mono);
+            font-size: 8px;
+            padding: 2px 5px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            letter-spacing: 0.1em;
+        }
+
+        /* ── finger assignment ── */
+        .finger-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .finger-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .finger-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-dim);
+            width: 48px;
+            flex-shrink: 0;
+            letter-spacing: 0.05em;
+        }
+
+        .finger-select {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text-primary);
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 5px 8px;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            outline: none;
+            transition: border-color 0.15s ease;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%237a6e8a'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            padding-right: 24px;
+        }
+
+        .finger-select:hover,
+        .finger-select:focus {
+            border-color: var(--eva-purple);
+        }
+
+        .finger-select option {
+            background: #1a1025;
+            color: var(--text-primary);
+        }
+
+        .finger-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* color per finger */
+        .fi-index {
+            background: var(--eva-red);
+        }
+
+        .fi-middle {
+            background: var(--eva-orange);
+        }
+
+        .fi-ring {
+            background: var(--eva-purple);
+        }
+
+        .fi-pinky {
+            background: var(--eva-green);
+        }
+
+        /* ── hand assignment labels ── */
+        .hand-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .hand-tag {
+            font-family: var(--mono);
+            font-size: 9px;
+            padding: 2px 7px;
+            border-radius: 2px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .hand-tag.h1 {
+            background: rgba(132, 195, 78, 0.15);
+            color: var(--eva-green);
+            border: 1px solid rgba(132, 195, 78, 0.3);
+        }
+
+        .hand-tag.h2 {
+            background: rgba(211, 40, 40, 0.15);
+            color: var(--eva-red);
+            border: 1px solid rgba(211, 40, 40, 0.3);
+        }
+
+        .hand-desc {
+            font-size: 10px;
+            color: var(--text-dim);
+            font-weight: 300;
+        }
+
+        /* ── tremor control ── */
+        .slider-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .slider-name {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .slider-value {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--eva-green);
+        }
+
+        .slider-desc {
+            font-size: 10px;
+            color: var(--text-dim);
+            font-weight: 300;
+            line-height: 1.4;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+            margin: 4px 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: var(--eva-purple);
+            border: 2px solid var(--bg);
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        input[type="range"]:hover::-webkit-slider-thumb {
+            background: var(--eva-green);
+        }
+
+        /* ── bottom links ── */
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 14px 18px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .footer-link {
+            font-size: 10px;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-family: var(--mono);
+            letter-spacing: 0.05em;
+            transition: color 0.15s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--eva-green);
+        }
+
+        .footer-link::before {
+            content: '> ';
+            color: var(--eva-purple);
+        }
+
+        /* ── render area ── */
+        #renderDiv {
+            flex: 1;
+            position: relative;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* top bar inside renderDiv */
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 42px;
+            background: linear-gradient(to bottom, rgba(10, 10, 20, 0.7), transparent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        #info-text {
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 0.15em;
+            color: rgba(232, 224, 240, 0.7);
+            text-transform: lowercase;
+        }
+
+        /* top-right corner badge */
+        #logo-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 50;
+            text-align: center;
+            font-family: var(--mono);
+            font-size: 10px;
+        }
+
+        #logo-container a {
+            color: var(--text-dim);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+        }
+
+        #logo-container a:hover {
+            color: var(--eva-green);
+        }
+
+        #logo {
+            font-size: 1.6em;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* coffee link bottom right */
+        #coffee-link {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 50;
+        }
+
+        #coffee-link a {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-dim);
+            text-decoration: none;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            background: var(--panel);
+            backdrop-filter: blur(6px);
+            transition: all 0.15s ease;
+            letter-spacing: 0.05em;
+        }
+
+        #coffee-link a:hover {
+            border-color: var(--eva-orange);
+            color: var(--eva-orange);
+        }
+
+        /* game over overlay */
+        #gameOverContainer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+            display: none;
+            pointer-events: none;
+            text-align: center;
+            color: white;
+            font-family: var(--mono);
+        }
+
+        /* divider between sections */
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0;
+        }
+
+        /* status dot */
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 8px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--eva-green);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        .status-text {
+            font-family: var(--mono);
+            font-size: 9px;
+            color: var(--text-dim);
+            letter-spacing: 0.1em;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+
+        <!-- ── SIDEBAR ── -->
+        <aside id="sidebar">
+
+            <div class="sidebar-logo">
+                <div class="app-name">arpeggiator</div>
+                <div class="app-tagline">hand-controlled music instrument</div>
+                <div class="status-row">
+                    <div class="status-dot"></div>
+                    <div class="status-text">tracking active</div>
+                </div>
+            </div>
+
+            <!-- MODE -->
+            <div class="sidebar-section">
+                <div class="section-label">// mode</div>
+                <div class="mode-options">
+
+                    <div class="mode-option">
+                        <input type="radio" name="mode" id="mode-default" value="default" checked>
+                        <label for="mode-default">
+                            <span class="radio-dot"></span>
+                            Two-Hand
+                            <span class="mode-badge">DEFAULT</span>
+                        </label>
+                    </div>
+
+                    <div class="mode-option">
+                        <input type="radio" name="mode" id="mode-onehand" value="onehand">
+                        <label for="mode-onehand">
+                            <span class="radio-dot"></span>
+                            One-Hand
+                            <span class="mode-badge">BETA</span>
+                        </label>
+                    </div>
+
+                    <div class="mode-option">
+                        <input type="radio" name="mode" id="mode-voice" value="voice">
+                        <label for="mode-voice">
+                            <span class="radio-dot"></span>
+                            Voice-Only
+                            <span class="mode-badge">BETA</span>
+                        </label>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- HAND 1 CONTROLS -->
+            <div class="sidebar-section">
+                <div class="hand-header">
+                    <span class="hand-tag h1">hand 1</span>
+                    <span class="hand-desc">arpeggio</span>
+                </div>
+                <div class="section-label">// instrument</div>
+                <div class="finger-list">
+
+                    <div class="finger-row">
+                        <span class="finger-label">pitch</span>
+                        <select class="finger-select" id="h1-pitch">
+                            <option value="arpeggio" selected>Arpeggio</option>
+                            <option value="melody">Melody Lead</option>
+                            <option value="chord">Chord Pad</option>
+                            <option value="bass">Bass Synth</option>
+                        </select>
+                    </div>
+
+                    <div class="finger-row">
+                        <span class="finger-label">pinch</span>
+                        <select class="finger-select" id="h1-pinch">
+                            <option value="volume" selected>Volume</option>
+                            <option value="filter">Filter Sweep</option>
+                            <option value="reverb">Reverb Mix</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- HAND 2 FINGER ASSIGNMENT -->
+            <div class="sidebar-section">
+                <div class="hand-header">
+                    <span class="hand-tag h2">hand 2</span>
+                    <span class="hand-desc">drums</span>
+                </div>
+                <div class="section-label">// finger assignment</div>
+                <div class="finger-list">
+
+                    <div class="finger-row">
+                        <span class="finger-indicator fi-index"></span>
+                        <span class="finger-label">index</span>
+                        <select class="finger-select" id="f-index">
+                            <option value="kick" selected>Kick</option>
+                            <option value="snare">Snare</option>
+                            <option value="hihat">Hi-Hat</option>
+                            <option value="clap">Clap</option>
+                            <option value="bass">Bass Synth</option>
+                            <option value="pad">Ambient Pad</option>
+                            <option value="none">— None —</option>
+                        </select>
+                    </div>
+
+                    <div class="finger-row">
+                        <span class="finger-indicator fi-middle"></span>
+                        <span class="finger-label">middle</span>
+                        <select class="finger-select" id="f-middle">
+                            <option value="kick">Kick</option>
+                            <option value="snare" selected>Snare</option>
+                            <option value="hihat">Hi-Hat</option>
+                            <option value="clap">Clap</option>
+                            <option value="bass">Bass Synth</option>
+                            <option value="pad">Ambient Pad</option>
+                            <option value="none">— None —</option>
+                        </select>
+                    </div>
+
+                    <div class="finger-row">
+                        <span class="finger-indicator fi-ring"></span>
+                        <span class="finger-label">ring</span>
+                        <select class="finger-select" id="f-ring">
+                            <option value="kick">Kick</option>
+                            <option value="snare">Snare</option>
+                            <option value="hihat" selected>Hi-Hat</option>
+                            <option value="clap">Clap</option>
+                            <option value="bass">Bass Synth</option>
+                            <option value="pad">Ambient Pad</option>
+                            <option value="none">— None —</option>
+                        </select>
+                    </div>
+
+                    <div class="finger-row">
+                        <span class="finger-indicator fi-pinky"></span>
+                        <span class="finger-label">pinky</span>
+                        <select class="finger-select" id="f-pinky">
+                            <option value="kick">Kick</option>
+                            <option value="snare">Snare</option>
+                            <option value="hihat">Hi-Hat</option>
+                            <option value="clap" selected>Clap</option>
+                            <option value="bass">Bass Synth</option>
+                            <option value="pad">Ambient Pad</option>
+                            <option value="none">— None —</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TREMOR SMOOTHING -->
+            <div class="sidebar-section">
+                <div class="section-label">// accessibility</div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span class="slider-name">Tremor Smoothing</span>
+                        <span class="slider-value" id="smoothing-val">40%</span>
+                    </div>
+                    <div class="slider-desc">reduces jitter from hand tremors</div>
+                    <input type="range" id="smoothing-slider" min="1" max="99" value="40">
+                </div>
+            </div>
+
+            <!-- FOOTER LINKS -->
+            <div class="sidebar-footer">
+                <a class="footer-link" href="https://www.x.com/measure_plan/" target="_blank">Twitter</a>
+                <a class="footer-link" href="https://www.instagram.com/stereo.drift/" target="_blank">Instagram</a>
+                <a class="footer-link" href="https://youtube.com/@funwithcomputervision" target="_blank">Youtube</a>
+                <a class="footer-link" href="https://funwithcomputervision.com/" target="_blank">Code & Tutorials</a>
+            </div>
+
+        </aside>
+
+        <!-- ── MAIN VIEW ── -->
+        <div id="renderDiv">
+
+            <div id="top-bar">
+                <span id="info-text">raise your hands to raise the roof</span>
+            </div>
+
+            <div id="logo-container">
+                <span id="logo">🪬</span>
+                <a href="https://funwithcomputervision.com/" target="_blank">code & tutorials</a>
+            </div>
+
+            <div id="coffee-link">
+                <a href="https://buymeacoffee.com/stereodrift" target="_blank">buy me a coffee 💛</a>
+            </div>
+
+            <!-- game over / error overlay, managed by game.js -->
+            <div id="gameOverContainer">
+                <div id="gameOverText" style="font-size: clamp(28px,8vw,56px); font-weight: 700; margin-bottom: 8px;">
+                </div>
+                <div id="restartHintText" style="font-size: clamp(13px,2.5vw,18px); opacity: 0.6; display:none;">(click
+                    to restart tracking)</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- slider live update -->
+    <script>
+        const slider = document.getElementById('smoothing-slider');
+        const valDisplay = document.getElementById('smoothing-val');
+        slider.addEventListener('input', () => {
+            valDisplay.textContent = slider.value + '%';
+            // wire to game smoothingFactor when game.js is ready:
+            // window._game && (_game.smoothingFactor = slider.value / 100);
+        });
+    </script>
+
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
