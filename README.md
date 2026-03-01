@@ -6,23 +6,22 @@ For QuackHacks 2026, we specifically built this project for the **Accessibility 
 
 
 ## How it works
-
 - **Hand 1** controls the arpeggio — raise your hand to raise the pitch, pinch your thumb and index finger to control volume. Make a fist to cycle synth presets.
-- **Hand 2** controls the drum machine — raise individual fingers to toggle kick, snare, hi-hat, and clap patterns.
+- **Hand 2** controls the instrument sounds — raise individual fingers to toggle kick, snare, hi-hat, clap patterns, etc.
 
 Both hands are tracked in real time via your webcam. No touching required.
 
 ## Accessibility features
 
-**Tremor smoothing** — an adjustable stabilization slider reduces jitter caused by hand tremors or conditions like Parkinson's or essential tremor. The underlying smoothing was already in the codebase; Ayre surfaces it as a first-class control.
+**Tremor smoothing** — an adjustable stabilization slider reduces jitter caused by hand tremors or conditions like Parkinson's or muscle weakness. The underlying smoothing was already in the codebase; Ayre surfaces it as a first-class control.
 
-**One-hand mode** *(in progress)* — redesigned control scheme so the full instrument is playable with a single hand, for users with limb differences or upper-limb impairments.
+**One-hand mode** — redesigned control scheme so the instrument sounds and volume adjustment is controllable from one hand for users with limb differences/impairments.
 
-**Voice-only mode** *(in progress)* — trigger drums and change synth presets via voice commands using the Web Speech API, for users who cannot use hand gestures at all.
+**Voice-only mode** — trigger instrument sounds and change synth presets via voice commands using the Web Speech API, for users who cannot use hand gestures at all.
 
-**Customizable finger assignment** — reassign which finger controls which drum or instrument. Accommodates non-standard hand anatomy or personal preference.
+**Customizable finger assignment** — reassign which finger controls which instrument. Accommodates non-standard hand anatomy or personal preference.
 
-**No hardware required** — runs on any modern laptop or desktop with a webcam. The barrier to entry is a camera, which most people already have.
+**No specialized hardware required** — runs on any modern laptop or desktop with a webcam and microphone.
 
 ## Running it
 
