@@ -328,6 +328,14 @@ export var Game = /*#__PURE__*/ function () {
         // 'default' | 'onehand' | 'voice'
         this.currentMode = 'default';
 
+        // --- Microphone Constructors ---
+        this.isMicOn = false; //tells if mic is on or off
+        this.micStream = null; //stores live microphone feed
+        this.micAnalyser = null; //reads mic audio levels to help tell if we are in listening or recieving state
+        this.micData = null; //array used to store 
+        this.micRAF = null; //keeps updating mic level
+        this.micMonitorEl = null; //holds the live audio that gets played back through speakers 
+
         // Initialize asynchronously
         this._init().catch(function (error) {
             console.error("Initialization failed:", error);
@@ -1240,6 +1248,27 @@ export var Game = /*#__PURE__*/ function () {
                     });
                 }
                 console.log('Game event listeners set up.');
+
+                //Microphone Setup
+                var micBtn = document.getElementById('mic-toggle');
+                var micStatus = document.getElementById('mic-status');
+
+                if (!micBtn) return; 
+                micBtn.addEventListener('click', async () => {
+
+                    if (!this.isMicOn) {
+                    // Start mic
+                    await this.startMic();
+                    micBtn.textContent = "Listening";
+                    micStatus.textContent = "Mic: Listening";
+
+                    } else {
+                    // Stop mic
+                    this.stopMic();
+                    micBtn.textContent = "Start Mic";
+                    micStatus.textContent = "Mic: off";
+                    }
+                });
             }
         },
         {
@@ -1268,7 +1297,75 @@ export var Game = /*#__PURE__*/ function () {
                     drumManager.updateActiveDrums({});
                 }
             }
+        },
+        {
+            key: "startMic",
+            value: async function startMic() {
+                this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Live mic monitoring (hear yourself)
+                if (!this.micMonitorEl) {
+                    this.micMonitorEl = document.createElement("audio");
+                    this.micMonitorEl.autoplay = true;
+                    this.micMonitorEl.muted = false;
+                    this.micMonitorEl.volume = 0.2;   // try 0.2 if feedback is bad
+                    document.body.appendChild(this.micMonitorEl); // optional 
+                }
+                
+                this.micMonitorEl.srcObject = this.micStream;
+                await this.micMonitorEl.play();  // Some browsers/electron require an explicit play() after a user gesture
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioCtx.createMediaStreamSource(this.micStream);
+
+                this.micAnalyser = audioCtx.createAnalyser();
+                this.micAnalyser.fftSize = 512;
+                this.micData = new Uint8Array(this.micAnalyser.frequencyBinCount);
+                source.connect(this.micAnalyser);
+                this.isMicOn = true;
+                this.updateMicLevel();
+            }
+        },
+        {
+            key: "stopMic",
+            value: function stopMic() {
+                if (this.micStream) {
+                    this.micStream.getTracks().forEach(track => track.stop());
+                }
+                this.isMicOn = false;
+                if (this.micRAF) cancelAnimationFrame(this.micRAF);
+                // Stop mic monitoring
+                if (this.micMonitorEl) {
+                    this.micMonitorEl.pause();
+                    this.micMonitorEl.srcObject = null;
+                    // optional: remove from DOM
+                    this.micMonitorEl.remove();
+                    this.micMonitorEl = null;
+                }
+            }
+        },
+        {
+            key: "updateMicLevel", //like life volume checker that updates if the mic is listening or not
+            value: function updateMicLevel() {
+                if (!this.isMicOn) return;
+
+                const micStatus = document.getElementById("mic-status");
+                this.micAnalyser.getByteFrequencyData(this.micData);
+
+                let sum = 0;
+                for (let i = 0; i < this.micData.length; i++) {
+                    sum += this.micData[i];
+                }
+
+                const avg = sum / this.micData.length;
+
+                if (avg > 10) {
+                    micStatus.textContent = "Mic: receiving";
+                } else {
+                    micStatus.textContent = "Mic: listening";
+                }
+                this.micRAF = requestAnimationFrame(this.updateMicLevel.bind(this));
+            }
         }
-    ]);
+]);
     return Game;
 }();
