@@ -1,4 +1,4 @@
-# Epidaurus
+# Ayre
 
 A hackathon project exploring gesture-based music accessibility. Make music with nothing but a camera and your hands — no instruments, no hardware, no prior experience required.
 
@@ -14,7 +14,7 @@ Both hands are tracked in real time via your webcam. No touching required.
 
 ## Accessibility features
 
-**Tremor smoothing** — an adjustable stabilization slider reduces jitter caused by hand tremors or conditions like Parkinson's or essential tremor. The underlying smoothing was already in the codebase; Epidaurus surfaces it as a first-class control.
+**Tremor smoothing** — an adjustable stabilization slider reduces jitter caused by hand tremors or conditions like Parkinson's or essential tremor. The underlying smoothing was already in the codebase; Ayre surfaces it as a first-class control.
 
 **One-hand mode** *(in progress)* — redesigned control scheme so the full instrument is playable with a single hand, for users with limb differences or upper-limb impairments.
 
