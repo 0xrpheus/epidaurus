@@ -156,6 +156,7 @@ export var MusicManager = /*#__PURE__*/ function() {
         this.activePatterns = new Map();
         // Use a Map to store the current volume (velocity) for each hand's arpeggio
         this.handVolumes = new Map();
+        this.mic = new Tone.UserMedia();
         this.recorder = new Tone.Recorder();
         Tone.getDestination().connect(this.recorder);
         // Create a recorder instance so we can record and download it later
@@ -422,6 +423,7 @@ export var MusicManager = /*#__PURE__*/ function() {
             value: function startRecording() {
                 if (this.recorder.state !== "started") {
                     this.recorder.start();
+                    this.mic.connect(this.analyser);
                     console.log("Recording started...");
                 }
             }
@@ -448,6 +450,32 @@ export var MusicManager = /*#__PURE__*/ function() {
                                 anchor.click();
                                 
                                 console.log("Recording saved and download triggered.");
+                                return [2];
+                        }
+                    });
+                })();
+            }
+        },
+                {
+            key: "toggleMic",
+            value: function toggleMic(active) {
+                var _this = this;
+                return _async_to_generator(function() {
+                    return _ts_generator(this, function(_state) {
+                        switch (_state.label) {
+                            case 0:
+                                if (!active) {
+                                    _this.mic.close();
+                                    console.log("Microphone closed.");
+                                    return [2];
+                                }
+                                // Request permission and open mic
+                                return [4, _this.mic.open()];
+                            case 1:
+                                _state.sent();
+                                _this.mic.disconnect(); 
+                                _this.mic.connect(Tone.getDestination());
+                                console.log("Microphone active.");
                                 return [2];
                         }
                     });

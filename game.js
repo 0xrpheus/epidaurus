@@ -1227,9 +1227,39 @@ export var Game = /*#__PURE__*/ function () {
                     }
                 });
 
+                const micBtn = document.getElementById('mic-toggle');
+                const micStatus = document.getElementById('mic-status');
+                let isMicActive = false;
+
+                if (micBtn) {
+                    micBtn.onclick = async () => {
+                        isMicActive = !isMicActive;
+
+                        // Ensure music manager is started first
+                        if (!_this.musicManager.isStarted) await _this.musicManager.start();
+
+                        // Toggle the audio in MusicManager
+                        _this.musicManager.toggleMic(isMicActive);
+
+                        // Update the Button Look
+                        if (isMicActive) {
+                            micBtn.innerText = "STOP MICROPHONE";
+                            micBtn.style.background = "var(--eva-green)";
+                            micBtn.style.color = "#0a0a0f"; // Dark text on green
+                            if (micStatus) micStatus.innerText = "MIC: RECEIVING";
+                        } else {
+                            micBtn.innerText = "START MICROPHONE";
+                            micBtn.style.background = "rgba(255,255,255,0.05)";
+                            micBtn.style.color = "var(--text-primary)";
+                            if (micStatus) micStatus.innerText = "MIC: OFF";
+                        }
+                    };
+                }
+
+                // Recording
                 var recordBtn = document.getElementById('record-btn');
                 var isRecording = false;
-
+                
                 if (recordBtn) {
                     recordBtn.addEventListener('click', function() {
                         if (!isRecording) {
@@ -1248,27 +1278,6 @@ export var Game = /*#__PURE__*/ function () {
                     });
                 }
                 console.log('Game event listeners set up.');
-
-                //Microphone Setup
-                var micBtn = document.getElementById('mic-toggle');
-                var micStatus = document.getElementById('mic-status');
-
-                if (!micBtn) return; 
-                micBtn.addEventListener('click', async () => {
-
-                    if (!this.isMicOn) {
-                    // Start mic
-                    await this.startMic();
-                    micBtn.textContent = "Listening";
-                    micStatus.textContent = "Mic: Listening";
-
-                    } else {
-                    // Stop mic
-                    this.stopMic();
-                    micBtn.textContent = "Start Mic";
-                    micStatus.textContent = "Mic: off";
-                    }
-                });
             }
         },
         {

@@ -751,19 +751,29 @@
                 </div>
             </div>
 
-            <!-- RECORDING SECTION -->
+            <!-- ── VOICE SECTION ── -->
             <div class="sidebar-section">
-                <div class="section-label">recorder</div>
-                <button id="record-btn" style="width: 100%; padding: 10px; background: var(--eva-red); color: white; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;">
-                    ● START RECORDING
-                </button>
+                <div class="section-label">MICROPHONE</div>
+                <div class="mode-options">
+                    <button id="mic-toggle" type="button" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.05); color: white; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; outline: none;">
+                        <span id="mic-dot" style="width: 7px; height: 7px; background: var(--eva-green); border-radius: 50%; flex-shrink: 0;"></span>
+                        START MICROPHONE
+                    </button>
+                    <div id="mic-status" style="font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-top: 10px; text-align: center; text-transform: uppercase; letter-spacing: 0.05em;">
+                        Mic: off
+                    </div>
+                </div>
             </div>
 
-            <!-- MICROPHONE SECTION-->
+            <!-- ── RECORDER SECTION ── -->
             <div class="sidebar-section">
-                <div class="section-label">Microphone</div>
-                <button id="mic-toggle" class="footer-button" type="button" style="width: 100%; padding: 10px; background: white; color: black; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;">Start Mic</button>
-                <div id="mic-status" class="mic-status">Mic: off</div>
+                <div class="section-label">RECORDING</div>
+                <div class="mode-options">
+                    <button id="record-btn" style="width: 100%; padding: 10px; background: var(--eva-red); color: white; border: none; border-radius: 4px; cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span id="record-dot" style="width: 7px; height: 7px; background: white; border-radius: 50%;"></span>
+                        START RECORDING
+                    </button>
+                </div>
             </div>
 
             <!-- FOOTER LINKS -->
