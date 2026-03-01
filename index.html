@@ -5,38 +5,38 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Ayre</title>
 
-		<meta name="title" content="Arpeggiator" />
+		<meta name="title" content="Ayre" />
 		<meta
 			name="description"
-			content="hand-controlled arp, drum machine, real-time visualizer"
+			content="Ayre — accessible, hand-controlled music instrument. Arpeggio, drum machine, and real-time visualizer."
 		/>
+
+		<!-- Open Graph -->
 		<meta property="og:type" content="website" />
-		<meta
-			property="og:url"
-			content="https://collidingscopes.github.io/arpeggiator/"
-		/>
-		<meta property="og:title" content="Arpeggiator" />
+		<meta property="og:url" content="https://YOUR_DEPLOYMENT_URL_HERE/" />
+		<meta property="og:title" content="Ayre" />
 		<meta
 			property="og:description"
-			content="hand-controlled arp, drum machine, real-time visualizer"
+			content="Ayre — accessible, hand-controlled music instrument. Arpeggio, drum machine, and real-time visualizer."
 		/>
-		<meta
-			property="og:image"
-			content="https://raw.githubusercontent.com/collidingScopes/arpeggiator/main/assets/siteOGImage.webp"
-		/>
+		<!-- Replace the content value below with your own OG image URL -->
+		<meta property="og:image" content="https://YOUR_OG_IMAGE_URL_HERE" />
+
+		<!-- Twitter / X -->
 		<meta property="twitter:card" content="summary_large_image" />
 		<meta
 			property="twitter:url"
-			content="https://collidingscopes.github.io/arpeggiator/"
+			content="https://YOUR_DEPLOYMENT_URL_HERE/"
 		/>
-		<meta property="twitter:title" content="Arpeggiator" />
+		<meta property="twitter:title" content="Ayre" />
 		<meta
 			property="twitter:description"
-			content="hand-controlled arp, drum machine, real-time visualizer"
+			content="Ayre — accessible, hand-controlled music instrument. Arpeggio, drum machine, and real-time visualizer."
 		/>
+		<!-- Replace the content value below with your own Twitter card image URL -->
 		<meta
 			property="twitter:image"
-			content="https://raw.githubusercontent.com/collidingScopes/arpeggiator/main/assets/siteOGImage.webp"
+			content="https://YOUR_OG_IMAGE_URL_HERE"
 		/>
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -46,11 +46,6 @@
 			rel="stylesheet"
 		/>
 
-		<script
-			defer
-			src="https://cloud.umami.is/script.js"
-			data-website-id="eb59c81c-27cb-4e1d-9e8c-bfbe70c48cd9"
-		></script>
 		<script type="importmap">
 			{
 				"imports": {
@@ -453,42 +448,10 @@
 				font-family: var(--mono);
 				font-size: 10px;
 			}
-			#logo-container a {
-				color: var(--text-dim);
-				text-decoration: none;
-				letter-spacing: 0.05em;
-			}
-			#logo-container a:hover {
-				color: var(--eva-green);
-			}
 			#logo {
 				font-size: 1.6em;
 				display: block;
 				margin-bottom: 2px;
-			}
-
-			#coffee-link {
-				position: absolute;
-				bottom: 10px;
-				right: 10px;
-				z-index: 50;
-			}
-			#coffee-link a {
-				font-family: var(--mono);
-				font-size: 10px;
-				color: var(--text-dim);
-				text-decoration: none;
-				padding: 6px 10px;
-				border: 1px solid var(--border);
-				border-radius: 3px;
-				background: var(--panel);
-				backdrop-filter: blur(6px);
-				transition: all 0.15s ease;
-				letter-spacing: 0.05em;
-			}
-			#coffee-link a:hover {
-				border-color: var(--eva-orange);
-				color: var(--eva-orange);
 			}
 
 			.status-row {
@@ -523,7 +486,7 @@
 
 			/* ── voice mode panel ── */
 			#voice-mode-panel {
-				display: none; /* shown by JS when voice mode is active */
+				display: none;
 				margin-top: 2px;
 			}
 
@@ -668,7 +631,6 @@
 							</label>
 						</div>
 
-						<!-- One-hand: BETA badge removed -->
 						<div class="mode-option">
 							<input
 								type="radio"
@@ -1007,9 +969,10 @@
 
 				<!-- FOOTER -->
 				<div class="sidebar-footer">
+					<!-- Update this href to your actual repository URL -->
 					<a
 						class="footer-link"
-						href="https://github.com/0xrpheus/epidaurus/"
+						href="https://github.com/YOUR_USERNAME/ayre"
 						target="_blank"
 						>Source Code</a
 					>

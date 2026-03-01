@@ -1760,8 +1760,6 @@ export var Game = /*#__PURE__*/ (function () {
 								}
 							},
 						);
-					} else {
-						this.voiceManager.start();
 					}
 					this.voiceManager.start();
 				}

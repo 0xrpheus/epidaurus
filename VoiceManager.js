@@ -4,6 +4,8 @@
  * Parses continuous speech and routes commands to drumManager and musicManager.
  */
 
+const BACKEND_URL = "https://epidaurus-production.up.railway.app";
+
 // Confidence threshold — ignore low-confidence transcripts
 const CONFIDENCE_THRESHOLD = 0.55;
 
@@ -16,8 +18,8 @@ const INSTRUMENT_ALIASES = {
 	snare: ["snare", "snare drum", "snap", "snair"],
 	hihat: ["hi-hat", "hihat", "hi hat", "hat", "high hat", "hats"],
 	clap: ["clap", "claps", "handclap", "hand clap"],
-	bass_drop: ["bass drop", "bass", "drop", "sub", "bass drop"],
-	bass_synth: ["bass synth", "bass synth", "synth bass", "bassline"],
+	bass_drop: ["bass drop", "bass", "drop", "sub"],
+	bass_synth: ["bass synth", "synth bass", "bassline"],
 	bell: ["bell", "bells", "ding", "chime"],
 	cymbal: ["cymbal", "crash", "ride", "plate"],
 	piano: ["piano", "keys", "keyboard", "ivories"],
@@ -39,7 +41,6 @@ const PITCH_NOTES = [
 	"Eb5",
 ];
 
-// Spoken note words → note string
 const NOTE_ALIASES = {
 	c3: "C3",
 	"c 3": "C3",
@@ -73,7 +74,7 @@ export class VoiceManager {
 	/**
 	 * @param {object} drumManagerRef  - The drumManager module
 	 * @param {object} musicManagerRef - The MusicManager instance
-	 * @param {object} gameRef         - The Game instance (for pitch/volume callbacks)
+	 * @param {object} gameRef         - The Game instance (for waveform color callbacks)
 	 * @param {function} onStatusChange - Called with (statusText) for UI feedback
 	 * @param {function} onCommandFired - Called with (commandLabel) for UI flash
 	 */
@@ -94,7 +95,7 @@ export class VoiceManager {
 		this.isListening = false;
 
 		// Persistent drum state — voice mode owns this
-		this.voiceDrumState = {}; // e.g. { kick: true, snare: false, ... }
+		this.voiceDrumState = {};
 
 		// Pitch state
 		this.currentPitchIndex = 5; // default C4
@@ -108,6 +109,9 @@ export class VoiceManager {
 
 		// Whether arpeggio is playing in voice mode
 		this._arpeggioActive = false;
+
+		// Track virtual finger keys added to the drum map so we can clean them up
+		this._virtualKeys = new Set();
 
 		this._setupRecognition();
 	}
@@ -132,11 +136,9 @@ export class VoiceManager {
 		this.recognition.maxAlternatives = 3;
 
 		this.recognition.onresult = (event) => {
-			// Only process the latest result
 			const result = event.results[event.results.length - 1];
 			if (!result.isFinal) return;
 
-			// Try each alternative in confidence order
 			let bestTranscript = null;
 			let bestConfidence = 0;
 
@@ -165,14 +167,13 @@ export class VoiceManager {
 		};
 
 		this.recognition.onerror = (event) => {
-			if (event.error === "no-speech") return; // normal silence, ignore
-			if (event.error === "aborted") return; // we called stop()
+			if (event.error === "no-speech") return;
+			if (event.error === "aborted") return;
 			console.warn("[Voice] Recognition error:", event.error);
 			this.onStatusChange(`error: ${event.error}`);
 		};
 
 		this.recognition.onend = () => {
-			// Auto-restart if we didn't intentionally stop
 			if (this.isListening) {
 				try {
 					this.recognition.start();
@@ -191,7 +192,6 @@ export class VoiceManager {
 		if (this.isListening) return;
 		this.isListening = true;
 
-		// Start with arpeggio playing at default pitch/volume
 		this._startArpeggio();
 
 		try {
@@ -207,8 +207,14 @@ export class VoiceManager {
 		if (!this.recognition) return;
 		this.isListening = false;
 
-		// Clean up audio state
 		this._stopArpeggio();
+
+		// Clean up all virtual finger keys we added to the drum map
+		this._virtualKeys.forEach((key) => {
+			this.drumManager.updateFingerMapping(key, "none");
+		});
+		this._virtualKeys.clear();
+
 		this.drumManager.updateActiveDrums({});
 		this.voiceDrumState = {};
 
@@ -223,7 +229,6 @@ export class VoiceManager {
 	// ── Command Parser ───────────────────────────────────────────────────────
 
 	_parseCommand(text) {
-		// Debounce identical commands
 		const now = Date.now();
 		if (
 			text === this._lastCommand &&
@@ -238,7 +243,6 @@ export class VoiceManager {
 		)) {
 			for (const alias of aliases) {
 				if (text.includes(alias)) {
-					// "kick off", "turn off kick", "stop kick"
 					const isOff =
 						text.includes("off") ||
 						text.includes("stop") ||
@@ -265,7 +269,7 @@ export class VoiceManager {
 						this._debounce(text);
 						return;
 					}
-					// Just the instrument name alone = toggle
+					// Instrument name alone = toggle
 					this._setDrum(instrument, !this.voiceDrumState[instrument]);
 					this._fire(`${instrument} toggle`);
 					this._debounce(text);
@@ -274,7 +278,7 @@ export class VoiceManager {
 			}
 		}
 
-		// ── 2. "all off" / "clear" / "reset" / "silence" ──
+		// ── 2. "all off" / "clear" / "reset" ──
 		if (
 			text.match(
 				/\b(all off|clear|reset drums|silence|quiet|stop everything)\b/,
@@ -306,7 +310,6 @@ export class VoiceManager {
 			return;
 		}
 
-		// Specific note: "play C4", "note G3", "set pitch to Bb4"
 		for (const [spoken, note] of Object.entries(NOTE_ALIASES)) {
 			if (text.includes(spoken)) {
 				const idx = PITCH_NOTES.indexOf(note);
@@ -351,7 +354,6 @@ export class VoiceManager {
 			)
 		) {
 			this.musicManager.cycleSynth();
-			// Restart arpeggio after synth swap
 			this._stopArpeggio();
 			setTimeout(() => this._startArpeggio(), 100);
 			this._fire(`synth ${this.musicManager.currentSynthIndex + 1}`);
@@ -382,7 +384,6 @@ export class VoiceManager {
 		}
 
 		// ── 7. AI Synth generation ──
-		// "generate [vibe]" or "make a [vibe] sound"
 		const generateMatch = text.match(
 			/(?:generate|make a?|create a?)\s+(.+?)(?:\s+(?:sound|synth|preset))?$/,
 		);
@@ -394,7 +395,6 @@ export class VoiceManager {
 			return;
 		}
 
-		// Unknown — just log
 		console.log(`[Voice] No command matched for: "${text}"`);
 	}
 
@@ -406,40 +406,33 @@ export class VoiceManager {
 		} else {
 			delete this.voiceDrumState[instrument];
 		}
-		// drumManager.updateActiveDrums expects { fingerName: isUp }
-		// but in voice mode we bypass the finger map — we need to push
-		// directly to activeDrums. We do this by building a fake fingerState
-		// that maps each active instrument through the finger map in reverse.
-		// Simpler: expose a direct method. Since we can't easily add one right now,
-		// we call updateActiveDrums with a synthetic fingerState that covers the instruments.
 		this._pushDrumState();
 	}
 
 	_pushDrumState() {
-		// Build a synthetic fingerState that maps active instruments.
-		// We temporarily patch the fingerToDrumMap to match our desired state,
-		// fire updateActiveDrums, then restore. Clean and avoids modifying DrumManager.
 		const fingerMap = this.drumManager.getFingerToDrumMap();
 		const activeInstruments = Object.keys(this.voiceDrumState);
 
-		// We'll synthesize finger "up" states for each active instrument
 		const syntheticStates = {};
 		const reverseMap = {};
 
 		for (const [finger, inst] of Object.entries(fingerMap)) {
-			reverseMap[inst] = finger;
+			// Only reverse-map real fingers, not virtual keys we added
+			if (!finger.startsWith("__voice_")) {
+				reverseMap[inst] = finger;
+			}
 		}
 
-		// For each active instrument, mark its finger as "up"
 		for (const inst of activeInstruments) {
 			if (reverseMap[inst]) {
 				syntheticStates[reverseMap[inst]] = true;
 			} else {
-				// Instrument not in current finger map — temporarily add it
-				// to a spare finger slot. We track these overrides and remove them.
-				// Use a virtual key that won't clash with real finger names.
+				// Add a virtual key for instruments not in the current finger map
 				const virtualKey = `__voice_${inst}`;
-				this.drumManager.updateFingerMapping(virtualKey, inst);
+				if (!this._virtualKeys.has(virtualKey)) {
+					this.drumManager.updateFingerMapping(virtualKey, inst);
+					this._virtualKeys.add(virtualKey);
+				}
 				syntheticStates[virtualKey] = true;
 			}
 		}
@@ -480,7 +473,6 @@ export class VoiceManager {
 	_fire(label) {
 		this.onCommandFired(label);
 		this.onStatusChange(`heard: ${label}`);
-		// Reset status back to "listening" after a moment
 		setTimeout(() => {
 			if (this.isListening) this.onStatusChange("listening");
 		}, 1800);
@@ -493,15 +485,13 @@ export class VoiceManager {
 
 	async _triggerAIGenerate(vibe) {
 		try {
-			const response = await fetch(
-				"https://epidaurus-production.up.railway.app/api/generate-synth",
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ vibe }),
-				},
-			);
-			if (!response.ok) throw new Error("Server error");
+			const response = await fetch(`${BACKEND_URL}/api/generate-synth`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ vibe }),
+			});
+			if (!response.ok)
+				throw new Error(`Server error: ${response.status}`);
 			const data = await response.json();
 
 			this.musicManager.applyAIPreset(data.preset);
@@ -514,7 +504,6 @@ export class VoiceManager {
 			}
 
 			this._fire(`AI: ${vibe}`);
-			// Restart arpeggio on new preset
 			this._stopArpeggio();
 			setTimeout(() => this._startArpeggio(), 100);
 		} catch (err) {
