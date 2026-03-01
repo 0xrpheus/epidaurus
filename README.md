@@ -88,7 +88,8 @@ Built on top of the [hand gesture arpeggiator](https://github.com/collidingScope
 ## Screenshots
 Two Hand Demo <img width="1465" height="875" alt="Screenshot 2026-03-01 at 3 19 22 AM" src="https://github.com/user-attachments/assets/c9d4b132-f92e-443a-84e0-83c032bc393d" />
 
-One Hand Demo <img width="1470" height="956" alt="Screenshot 2026-03-01 at 3 22 33 AM" src="https://github.com/user-attachments/assets/253b4386-667f-4524-b285-2ca0e6b9b412" />
+One Hand Demo <img width="1465" height="874" alt="Screenshot 2026-03-01 at 3 22 33 AM" src="https://github.com/user-attachments/assets/8c4fcb82-2556-46ec-8538-04e5c1b4e9ce" />
+
 
 Voice Command Control Panel <img width="257" height="514" alt="Screenshot 2026-03-01 at 3 24 01 AM" src="https://github.com/user-attachments/assets/f20ad16a-d8a0-43bd-ae5e-d6086eb6d7d2" />
 
