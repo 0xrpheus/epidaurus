@@ -1,8 +1,8 @@
 # Ayre
 
-A hackathon project exploring gesture-based music accessibility. Make music with nothing but a camera and your hands — no instruments, no hardware, no prior experience required.
+While discussing the joy instrumental music brings to people, our team realized that learning and playing instruments isn’t equally accessible to everyone. Traditional lessons and instruments can be expensive, and many digital music tools assume the user can physically interact with a keyboard, mouse, or instrument in conventional ways.
 
-Built for the **Accessibility track**: traditional music creation is locked behind expensive gear and years of practice. Epidaurus removes both barriers. It runs in a browser or as a desktop app, requires no installation beyond a webcam, and includes features specifically designed for users with motor impairments.
+For QuackHacks 2026, we specifically built this project for the **Accessibility track**: traditional music creation is locked behind expensive gear and years of practice. Epidaurus removes both barriers. It runs in a browser or as a desktop app, requires no installation beyond a webcam, and includes features specifically designed for users with motor impairments.
 
 
 ## How it works
