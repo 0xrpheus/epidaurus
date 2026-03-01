@@ -147,7 +147,83 @@ var drumPattern = {
         false,
         false,
         false
-    ]
+    ],
+    //'kick':  [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
+    'bass_drop': [
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false
+    ],
+    // Snare on the backbeat (beats 2 and 4)
+    'bell': [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false
+    ],
+    // Open hi-hat feel on the off-beats
+    'cymbal': [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true
+    ],
+    // Clap layered with snare, but with an extra syncopated hit
+    'piano': [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false
+    ],
 };
 var fingerToDrumMap = {
     'index': 'kick',
@@ -170,7 +246,13 @@ var fingerToDrumMap = {
                 snare: 'assets/snare.wav',
                 hihat: 'assets/hihat.wav',
                 clap: 'assets/clap.wav',
-                bass_synth: 'assets/bass_synth.wav'
+
+                //New Instruments
+                bass_drop: 'assets/bass_drop.wav',
+                bass_synth: 'assets/bass_synth.wav',
+                bell: 'assets/bell.wav',
+                cymbal: 'assets/cymbal.wav',
+                piano: 'assets/piano.wav'
             },
             onload: function() {
                 isLoaded = true;
@@ -179,6 +261,11 @@ var fingerToDrumMap = {
                 players.player('snare').volume.value = 0;
                 players.player('hihat').volume.value = -2; // Softer hi-hat
                 players.player('clap').volume.value = 0;
+                players.player('bass_drop').volume.value = -6; // Lowered kick volume
+                players.player('bass_synth').volume.value = 0;
+                players.player('bell').volume.value = -2; // Softer hi-hat
+                players.player('cymbal').volume.value = 0;
+                players.player('piano').volume.value = 0;
                 players.player('bass_synth').volume.value = 0;
                 console.log("Drum samples loaded successfully.");
                 resolve();
