@@ -69,7 +69,7 @@ MIT
 
 ## Credits
 
-Built on top of the [hand gesture arpeggiator](https://github.com/collidingScopes/arpeggiator) by [@collidingScopes](https://github.com/collidingScopes). Epidaurus extends it with an accessibility-focused UI, tremor smoothing controls, customizable finger assignment, and one-hand / voice modes.
+Built on top of the [hand gesture arpeggiator](https://github.com/collidingScopes/arpeggiator) by [@collidingScopes](https://github.com/collidingScopes). Ayre extends it with an accessibility-focused UI, tremor smoothing controls, customizable finger assignment, and one-hand / voice modes.
 
 - Three.js — https://threejs.org/
 - MediaPipe — https://mediapipe.dev/
