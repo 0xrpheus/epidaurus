@@ -247,19 +247,17 @@ export var Game = /*#__PURE__*/ function () {
             20
         ]; // WRIST + TIP landmarks
         this.handConnections = null; // Landmark connection definitions
-        // this.handCollisionRadius = 30; // Conceptual radius for hand collision, was 25 (sphere radius) - Not needed for template
         this.gameState = 'loading'; // loading, ready, tracking, error
-        this.gameOverText = null; // Will be repurposed or simplified
+        this.gameOverText = null;
         this.clock = new THREE.Clock();
         this.musicManager = new MusicManager(); // Create an instance of MusicManager
         this.waveformVisualizer = null; // To be initialized
-        // this.drumManager = new DrumManager(); // DrumManager is now a static module, no instance needed
         this.lastLandmarkPositions = [
             [],
             []
         ]; // Store last known smoothed positions for each hand's landmarks
         this.smoothingFactor = 0.4; // Alpha for exponential smoothing (0 < alpha <= 1). Smaller = more smoothing.
-        this.loadedModels = {}; // To store loaded models if any (e.g. a generic hand model in future)
+        this.loadedModels = {};
         this.beatIndicators = []; // Array to hold the 16 beat indicator meshes
         this.beatIndicatorMaterials = []; // Array to hold the base material for each indicator
         this.beatIndicatorColors = {
@@ -272,9 +270,9 @@ export var Game = /*#__PURE__*/ function () {
             bell: new THREE.Color("#00E5FF"),
             cymbal: new THREE.Color("#FFD400"),
             piano: new THREE.Color("#A259FF"),
-            off: new THREE.Color("#ffffff") // Off state remains white
+            off: new THREE.Color("#ffffff")
         };
-        this.beatIndicatorGroup = null; // Group to hold all indicators for easy repositioning
+        this.beatIndicatorGroup = null;
         this.labelColors = {
             evaPurple: {
                 r: 123,
@@ -325,6 +323,11 @@ export var Game = /*#__PURE__*/ function () {
             new THREE.Color("#FFD400"),
             new THREE.Color("#A259FF")
         ];
+
+        // --- Mode ---
+        // 'default' | 'onehand' | 'voice'
+        this.currentMode = 'default';
+
         // Initialize asynchronously
         this._init().catch(function (error) {
             console.error("Initialization failed:", error);
@@ -340,21 +343,20 @@ export var Game = /*#__PURE__*/ function () {
                     return _ts_generator(this, function (_state) {
                         switch (_state.label) {
                             case 0:
-                                _this._setupDOM(); // Sets up basic DOM, including speech bubble container
+                                _this._setupDOM();
                                 _this._setupThree();
                                 return [
                                     4,
                                     _this._loadAssets()
                                 ];
                             case 1:
-                                _state.sent(); // Add asset loading step
+                                _state.sent();
                                 return [
                                     4,
                                     _this._setupHandTracking()
                                 ];
                             case 2:
-                                _state.sent(); // This needs to complete before we can proceed
-                                // Ensure webcam is playing before starting game logic dependent on it
+                                _state.sent();
                                 return [
                                     4,
                                     _this.videoElement.play()
@@ -362,9 +364,9 @@ export var Game = /*#__PURE__*/ function () {
                             case 3:
                                 _state.sent();
                                 window.addEventListener('resize', _this._onResize.bind(_this));
-                                _this._startGame(); // Start the game directly
-                                _this._setupEventListeners(); // Set up interaction listeners
-                                _this._animate(); // Start the animation loop (it will check state)
+                                _this._startGame();
+                                _this._setupEventListeners();
+                                _this._animate();
                                 return [
                                     2
                                 ];
@@ -377,10 +379,10 @@ export var Game = /*#__PURE__*/ function () {
             key: "_setupDOM",
             value: function _setupDOM() {
                 this.renderDiv.style.position = 'relative';
-                this.renderDiv.style.width = '100vw'; // Use viewport units for fullscreen
+                this.renderDiv.style.width = '100vw';
                 this.renderDiv.style.height = '100vh';
                 this.renderDiv.style.overflow = 'hidden';
-                this.renderDiv.style.background = '#111'; // Fallback background
+                this.renderDiv.style.background = '#111';
                 this.videoElement = document.createElement('video');
                 this.videoElement.style.position = 'absolute';
                 this.videoElement.style.top = '0';
@@ -388,44 +390,38 @@ export var Game = /*#__PURE__*/ function () {
                 this.videoElement.style.width = '100%';
                 this.videoElement.style.height = '100%';
                 this.videoElement.style.objectFit = 'cover';
-                this.videoElement.style.transform = 'scaleX(-1)'; // Mirror view for intuitive control
-                this.videoElement.style.filter = 'grayscale(100%)'; // Make it black and white
+                this.videoElement.style.transform = 'scaleX(-1)';
+                this.videoElement.style.filter = 'grayscale(100%)';
                 this.videoElement.autoplay = true;
-                this.videoElement.muted = true; // Mute video to avoid feedback loops if audio was captured
+                this.videoElement.muted = true;
                 this.videoElement.playsInline = true;
-                this.videoElement.style.zIndex = '0'; // Ensure video is behind THREE canvas
+                this.videoElement.style.zIndex = '0';
                 this.renderDiv.appendChild(this.videoElement);
-                // Container for Status text (formerly Game Over) and restart hint
                 this.gameOverContainer = document.createElement('div');
                 this.gameOverContainer.style.position = 'absolute';
                 this.gameOverContainer.style.top = '50%';
                 this.gameOverContainer.style.left = '50%';
                 this.gameOverContainer.style.transform = 'translate(-50%, -50%)';
                 this.gameOverContainer.style.zIndex = '10';
-                this.gameOverContainer.style.display = 'none'; // Hidden initially
-                this.gameOverContainer.style.pointerEvents = 'none'; // Don't block clicks
-                this.gameOverContainer.style.textAlign = 'center'; // Center text elements within
-                this.gameOverContainer.style.color = 'white'; // Default color, can be changed by _showError
+                this.gameOverContainer.style.display = 'none';
+                this.gameOverContainer.style.pointerEvents = 'none';
+                this.gameOverContainer.style.textAlign = 'center';
+                this.gameOverContainer.style.color = 'white';
                 this.gameOverContainer.style.textShadow = '2px 2px 4px black';
                 this.gameOverContainer.style.fontFamily = '"Arial Black", Gadget, sans-serif';
-                // Main Status Text (formerly Game Over Text)
-                this.gameOverText = document.createElement('div'); // Will be 'gameOverText' internally
-                this.gameOverText.innerText = 'STATUS'; // Generic placeholder
-                this.gameOverText.style.fontSize = 'clamp(36px, 10vw, 72px)'; // Responsive font size
+                this.gameOverText = document.createElement('div');
+                this.gameOverText.innerText = 'STATUS';
+                this.gameOverText.style.fontSize = 'clamp(36px, 10vw, 72px)';
                 this.gameOverText.style.fontWeight = 'bold';
-                this.gameOverText.style.marginBottom = '10px'; // Space below main text
+                this.gameOverText.style.marginBottom = '10px';
                 this.gameOverContainer.appendChild(this.gameOverText);
-                // Restart Hint Text (may or may not be shown depending on context)
                 this.restartHintText = document.createElement('div');
                 this.restartHintText.innerText = '(click to restart tracking)';
                 this.restartHintText.style.fontSize = 'clamp(16px, 3vw, 24px)';
                 this.restartHintText.style.fontWeight = 'normal';
-                this.restartHintText.style.opacity = '0.8'; // Slightly faded
+                this.restartHintText.style.opacity = '0.8';
                 this.gameOverContainer.appendChild(this.restartHintText);
                 this.renderDiv.appendChild(this.gameOverContainer);
-                // ScoreDisplay removed
-                // Watermelon (Center Emoji Marker) setup removed
-                // Chad Image Marker setup removed
             }
         },
         {
@@ -434,9 +430,8 @@ export var Game = /*#__PURE__*/ function () {
                 var width = this.renderDiv.clientWidth;
                 var height = this.renderDiv.clientHeight;
                 this.scene = new THREE.Scene();
-                // Using OrthographicCamera for a 2D-like overlay effect
                 this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
-                this.camera.position.z = 100; // Position along Z doesn't change scale in Ortho
+                this.camera.position.z = 100;
                 this.renderer = new THREE.WebGLRenderer({
                     alpha: true,
                     antialias: true
@@ -446,14 +441,13 @@ export var Game = /*#__PURE__*/ function () {
                 this.renderer.domElement.style.position = 'absolute';
                 this.renderer.domElement.style.top = '0';
                 this.renderer.domElement.style.left = '0';
-                this.renderer.domElement.style.zIndex = '1'; // Canvas on top of video
+                this.renderer.domElement.style.zIndex = '1';
                 this.renderDiv.appendChild(this.renderer.domElement);
                 var ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
                 this.scene.add(ambientLight);
                 var directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-                directionalLight.position.set(0, 0, 100); // Pointing from behind camera
+                directionalLight.position.set(0, 0, 100);
                 this.scene.add(directionalLight);
-                // Setup hand visualization (palm circles removed, lines will be added later)
                 for (var i = 0; i < 2; i++) {
                     var lineGroup = new THREE.Group();
                     lineGroup.visible = false;
@@ -462,7 +456,7 @@ export var Game = /*#__PURE__*/ function () {
                         landmarks: null,
                         anchorPos: new THREE.Vector3(),
                         lineGroup: lineGroup,
-                        isFist: false // Track if the hand is currently in a fist
+                        isFist: false
                     });
                 }
                 this.handLineMaterial = new THREE.LineBasicMaterial({
@@ -472,128 +466,30 @@ export var Game = /*#__PURE__*/ function () {
                 this.fingertipMaterialHand1 = new THREE.MeshBasicMaterial({
                     color: 0xffffff,
                     side: THREE.DoubleSide
-                }); // White
+                });
                 this.fingertipMaterialHand2 = new THREE.MeshBasicMaterial({
                     color: 0xffffff,
                     side: THREE.DoubleSide
-                }); // White
-                // Define connections for MediaPipe hand landmarks
-                // See: https://developers.google.com/mediapipe/solutions/vision/hand_landmarker#hand_landmarks
+                });
                 this.handConnections = [
-                    // Thumb
-                    [
-                        0,
-                        1
-                    ],
-                    [
-                        1,
-                        2
-                    ],
-                    [
-                        2,
-                        3
-                    ],
-                    [
-                        3,
-                        4
-                    ],
-                    // Index finger
-                    [
-                        0,
-                        5
-                    ],
-                    [
-                        5,
-                        6
-                    ],
-                    [
-                        6,
-                        7
-                    ],
-                    [
-                        7,
-                        8
-                    ],
-                    // Middle finger
-                    [
-                        0,
-                        9
-                    ],
-                    [
-                        9,
-                        10
-                    ],
-                    [
-                        10,
-                        11
-                    ],
-                    [
-                        11,
-                        12
-                    ],
-                    // Ring finger
-                    [
-                        0,
-                        13
-                    ],
-                    [
-                        13,
-                        14
-                    ],
-                    [
-                        14,
-                        15
-                    ],
-                    [
-                        15,
-                        16
-                    ],
-                    // Pinky
-                    [
-                        0,
-                        17
-                    ],
-                    [
-                        17,
-                        18
-                    ],
-                    [
-                        18,
-                        19
-                    ],
-                    [
-                        19,
-                        20
-                    ],
-                    // Palm
-                    [
-                        5,
-                        9
-                    ],
-                    [
-                        9,
-                        13
-                    ],
-                    [
-                        13,
-                        17
-                    ] // Connect base of fingers
+                    [0, 1], [1, 2], [2, 3], [3, 4],
+                    [0, 5], [5, 6], [6, 7], [7, 8],
+                    [0, 9], [9, 10], [10, 11], [11, 12],
+                    [0, 13], [13, 14], [14, 15], [15, 16],
+                    [0, 17], [17, 18], [18, 19], [19, 20],
+                    [5, 9], [9, 13], [13, 17]
                 ];
-                // Particle resources removed
-                // Ground line removed
-                // --- Beat Indicator ---
                 this.beatIndicatorGroup = new THREE.Group();
                 this.scene.add(this.beatIndicatorGroup);
-                this._setupBeatIndicatorMaterials(); // Create materials based on drum pattern
+                this._setupBeatIndicatorMaterials();
                 var indicatorSize = 20;
                 var indicatorGeometry = new THREE.PlaneGeometry(indicatorSize, indicatorSize);
                 for (var i1 = 0; i1 < 16; i1++) {
-                    // Use the pre-calculated material for this beat index
                     var indicator = new THREE.Mesh(indicatorGeometry, this.beatIndicatorMaterials[i1]);
                     this.beatIndicatorGroup.add(indicator);
                     this.beatIndicators.push(indicator);
                 }
-                this._positionBeatIndicators(); // Position them right after creation
+                this._positionBeatIndicators();
             }
         },
         {
@@ -608,34 +504,19 @@ export var Game = /*#__PURE__*/ function () {
                                 console.log("Loading assets...");
                                 _state.label = 1;
                             case 1:
-                                _state.trys.push([
-                                    1,
-                                    3,
-                                    ,
-                                    4
-                                ]);
-                                // Ghost Textures loading removed
-                                // Ghost GLTF Model loading removed (was already commented out)
-                                return [
-                                    4,
-                                    drumManager.loadSamples()
-                                ];
+                                _state.trys.push([1, 3, , 4]);
+                                return [4, drumManager.loadSamples()];
                             case 2:
-                                _state.sent(); // Load drum sounds
+                                _state.sent();
                                 console.log("No game-specific assets to load for template.");
-                                return [
-                                    3,
-                                    4
-                                ];
+                                return [3, 4];
                             case 3:
                                 error = _state.sent();
                                 console.error("Error loading assets:", error);
-                                _this._showError("Failed to load assets."); // Generic message
-                                throw error; // Stop initialization
+                                _this._showError("Failed to load assets.");
+                                throw error;
                             case 4:
-                                return [
-                                    2
-                                ];
+                                return [2];
                         }
                     });
                 })();
@@ -650,82 +531,56 @@ export var Game = /*#__PURE__*/ function () {
                     return _ts_generator(this, function (_state) {
                         switch (_state.label) {
                             case 0:
-                                _state.trys.push([
-                                    0,
-                                    4,
-                                    ,
-                                    5
-                                ]);
+                                _state.trys.push([0, 4, , 5]);
                                 console.log("Setting up Hand Tracking...");
-                                return [
-                                    4,
-                                    FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm')
-                                ];
+                                return [4, FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm')];
                             case 1:
                                 vision = _state.sent();
-                                return [
-                                    4,
-                                    HandLandmarker.createFromOptions(vision, {
-                                        baseOptions: {
-                                            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-                                            delegate: 'GPU'
-                                        },
-                                        numHands: 2,
-                                        runningMode: 'VIDEO'
-                                    })
-                                ];
+                                return [4, HandLandmarker.createFromOptions(vision, {
+                                    baseOptions: {
+                                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                                        delegate: 'GPU'
+                                    },
+                                    numHands: 2,
+                                    runningMode: 'VIDEO'
+                                })];
                             case 2:
                                 _this.handLandmarker = _state.sent();
                                 console.log("HandLandmarker created.");
                                 console.log("Requesting webcam access...");
-                                return [
-                                    4,
-                                    navigator.mediaDevices.getUserMedia({
-                                        video: {
-                                            facingMode: 'user',
-                                            width: {
-                                                ideal: 1280
-                                            },
-                                            height: {
-                                                ideal: 720
-                                            }
-                                        },
-                                        audio: false
-                                    })
-                                ];
+                                return [4, navigator.mediaDevices.getUserMedia({
+                                    video: {
+                                        facingMode: 'user',
+                                        width: { ideal: 1280 },
+                                        height: { ideal: 720 }
+                                    },
+                                    audio: false
+                                })];
                             case 3:
                                 stream = _state.sent();
                                 _this.videoElement.srcObject = stream;
                                 console.log("Webcam stream obtained.");
-                                // Wait for video metadata to load to ensure dimensions are available
-                                return [
-                                    2,
-                                    new Promise(function (resolve) {
-                                        _this.videoElement.onloadedmetadata = function () {
-                                            console.log("Webcam metadata loaded.");
-                                            // Adjust video size slightly after metadata is loaded if needed, but CSS handles most
-                                            _this.videoElement.style.width = _this.renderDiv.clientWidth + 'px';
-                                            _this.videoElement.style.height = _this.renderDiv.clientHeight + 'px';
-                                            resolve();
-                                        };
-                                    })
-                                ];
+                                return [2, new Promise(function (resolve) {
+                                    _this.videoElement.onloadedmetadata = function () {
+                                        console.log("Webcam metadata loaded.");
+                                        _this.videoElement.style.width = _this.renderDiv.clientWidth + 'px';
+                                        _this.videoElement.style.height = _this.renderDiv.clientHeight + 'px';
+                                        resolve();
+                                    };
+                                })];
                             case 4:
                                 error = _state.sent();
                                 console.error('Error setting up Hand Tracking or Webcam:', error);
                                 _this._showError("Webcam/Hand Tracking Error: ".concat(error.message, ". Please allow camera access."));
-                                throw error; // Re-throw to stop initialization
+                                throw error;
                             case 5:
-                                return [
-                                    2
-                                ];
+                                return [2];
                         }
                     });
                 })();
             }
         },
         {
-            // _startSpawning, _scheduleNextSpawn, _stopSpawning, _spawnGhost methods removed.
             key: "_updateHands",
             value: function _updateHands() {
                 var _this = this;
@@ -734,9 +589,40 @@ export var Game = /*#__PURE__*/ function () {
                 if (videoTime > this.lastVideoTime) {
                     this.lastVideoTime = videoTime;
                     try {
-                        var _this1, _loop = function (i) {
+                        var results = this.handLandmarker.detectForVideo(this.videoElement, performance.now());
+                        var videoParams = this._getVisibleVideoParameters();
+                        if (!videoParams) return;
+                        var canvasWidth = this.renderDiv.clientWidth;
+                        var canvasHeight = this.renderDiv.clientHeight;
+                        // C Minor Pentatonic Scale
+                        var scale = [
+                            'C3', 'Eb3', 'F3', 'G3', 'Bb3',
+                            'C4', 'Eb4', 'F4', 'G4', 'Bb4',
+                            'C5', 'Eb5'
+                        ];
+
+                        var isOneHand = this.currentMode === 'onehand';
+
+                        // Determine how many hand slots to process.
+                        // In one-hand mode we only process slot 0 and force slot 1 invisible.
+                        var handsToProcess = isOneHand ? 1 : this.hands.length;
+
+                        // In one-hand mode, ensure hand slot 1 is hidden and its arpeggio stopped.
+                        if (isOneHand) {
+                            var hand1 = this.hands[1];
+                            if (hand1.landmarks !== null) {
+                                this.musicManager.stopArpeggio(1);
+                                drumManager.updateActiveDrums({});
+                                hand1.landmarks = null;
+                            }
+                            if (hand1.lineGroup) hand1.lineGroup.visible = false;
+                        }
+
+                        for (var i = 0; i < handsToProcess; i++) {
+                            var _this1 = this;
                             var hand = _this1.hands[i];
                             var wasVisible = hand.landmarks !== null;
+
                             if (results.landmarks && results.landmarks[i]) {
                                 var currentRawLandmarks = results.landmarks[i];
                                 if (!_this1.lastLandmarkPositions[i] || _this1.lastLandmarkPositions[i].length !== currentRawLandmarks.length) {
@@ -756,7 +642,7 @@ export var Game = /*#__PURE__*/ function () {
                                     return _object_spread({}, lm);
                                 });
                                 hand.landmarks = smoothedLandmarks;
-                                var palm = smoothedLandmarks[9]; // MIDDLE_FINGER_MCP
+                                var palm = smoothedLandmarks[9];
                                 var lmOriginalX = palm.x * videoParams.videoNaturalWidth;
                                 var lmOriginalY = palm.y * videoParams.videoNaturalHeight;
                                 var normX_visible = (lmOriginalX - videoParams.offsetX) / videoParams.visibleWidth;
@@ -764,35 +650,59 @@ export var Game = /*#__PURE__*/ function () {
                                 var handX = (1 - normX_visible) * canvasWidth - canvasWidth / 2;
                                 var handY = (1 - normY_visible) * canvasHeight - canvasHeight / 2;
                                 hand.anchorPos.set(handX, handY, 1);
+
                                 if (i === 0) {
-                                    // --- Music & Gesture Control ---
+                                    // --- Music & Gesture Control (hand 0 — always) ---
                                     var isFistNow = _this1._isFist(smoothedLandmarks);
                                     if (isFistNow && !hand.isFist) {
-                                        // Fist gesture was just made
                                         _this1.musicManager.cycleSynth();
-                                        _this1.musicManager.stopArpeggio(i); // Stop any old arpeggio
+                                        _this1.musicManager.stopArpeggio(i);
                                     }
                                     hand.isFist = isFistNow;
+
                                     var noteIndex = Math.floor((1 - normY_visible) * scale.length);
                                     var note = scale[Math.max(0, Math.min(scale.length - 1, noteIndex))];
+
                                     if (_this1.waveformVisualizer) {
                                         var colorIndex = noteIndex % _this1.waveformColors.length;
-                                        var newColor = _this1.waveformColors[colorIndex];
-                                        _this1.waveformVisualizer.updateColor(newColor);
+                                        _this1.waveformVisualizer.updateColor(_this1.waveformColors[colorIndex]);
                                     }
+
                                     var thumbTip = smoothedLandmarks[4];
                                     var indexTip = smoothedLandmarks[8];
                                     var dx = thumbTip.x - indexTip.x;
                                     var dy = thumbTip.y - indexTip.y;
                                     var distance = Math.sqrt(dx * dx + dy * dy);
                                     var velocity = Math.max(0, Math.min(1.0, distance * 5));
+
+                                    // --- One-hand mode: also drive the drum machine from hand 0 ---
+                                    // Index finger is reserved for pinch/volume — exclude it from drum states.
+                                    if (isOneHand) {
+                                        if (isFistNow) {
+                                            drumManager.updateActiveDrums({});
+                                        } else {
+                                            var allFingerStates = _this1._getFingerStates(smoothedLandmarks);
+                                            var drumFingerStates = {
+                                                middle: allFingerStates.middle,
+                                                ring: allFingerStates.ring,
+                                                pinky: allFingerStates.pinky
+                                            };
+                                            drumManager.updateActiveDrums(drumFingerStates);
+                                        }
+                                    }
+
                                     _this1._updateHandLines(i, smoothedLandmarks, videoParams, canvasWidth, canvasHeight, {
                                         note: note,
                                         velocity: velocity,
-                                        isFist: isFistNow
+                                        isFist: isFistNow,
+                                        // Pass only drum-eligible finger states for the label in one-hand mode
+                                        fingerStates: isOneHand ? (function () {
+                                            var s = _this1._getFingerStates(smoothedLandmarks);
+                                            return { middle: s.middle, ring: s.ring, pinky: s.pinky };
+                                        })() : null
                                     });
+
                                     if (!isFistNow) {
-                                        // Start/Restart arpeggio if the hand just appeared OR if it just opened from a fist.
                                         var arpeggioIsActive = _this1.musicManager.activePatterns.has(i);
                                         if (!wasVisible || !arpeggioIsActive) {
                                             _this1.musicManager.startArpeggio(i, note);
@@ -801,51 +711,35 @@ export var Game = /*#__PURE__*/ function () {
                                         }
                                         _this1.musicManager.updateArpeggioVolume(i, velocity);
                                     } else {
-                                        // If it is a fist, make sure the arpeggio is stopped
                                         _this1.musicManager.stopArpeggio(i);
                                     }
+
                                 } else if (i === 1) {
+                                    // --- Drum Control (hand 1 — two-hand mode only) ---
                                     var fingerStates = _this1._getFingerStates(smoothedLandmarks);
                                     drumManager.updateActiveDrums(fingerStates);
                                     _this1._updateHandLines(i, smoothedLandmarks, videoParams, canvasWidth, canvasHeight, {
                                         fingerStates: fingerStates
                                     });
                                 }
+
                                 hand.lineGroup.visible = true;
                             } else {
                                 if (wasVisible) {
                                     if (i === 0) {
                                         _this1.musicManager.stopArpeggio(i);
+                                        // In one-hand mode, clearing drums is handled here too
+                                        if (isOneHand) {
+                                            drumManager.updateActiveDrums({});
+                                        }
                                     } else if (i === 1) {
-                                        // Disable all drums when hand is gone
                                         drumManager.updateActiveDrums({});
                                     }
                                 }
                                 hand.landmarks = null;
                                 if (hand.lineGroup) hand.lineGroup.visible = false;
                             }
-                        };
-                        var results = this.handLandmarker.detectForVideo(this.videoElement, performance.now());
-                        var videoParams = this._getVisibleVideoParameters();
-                        if (!videoParams) return;
-                        var canvasWidth = this.renderDiv.clientWidth;
-                        var canvasHeight = this.renderDiv.clientHeight;
-                        // C Minor Pentatonic Scale
-                        var scale = [
-                            'C3',
-                            'Eb3',
-                            'F3',
-                            'G3',
-                            'Bb3',
-                            'C4',
-                            'Eb4',
-                            'F4',
-                            'G4',
-                            'Bb4',
-                            'C5',
-                            'Eb5'
-                        ];
-                        for (var i = 0; i < this.hands.length; i++)_this1 = this, _loop(i);
+                        }
                     } catch (error) {
                         console.error("Error during hand detection:", error);
                     }
@@ -868,29 +762,23 @@ export var Game = /*#__PURE__*/ function () {
                 var finalVideoPixelX, finalVideoPixelY;
                 var visibleVideoPixelWidth, visibleVideoPixelHeight;
                 if (videoAR > renderDivAR) {
-                    // Video is wider than renderDiv, scaled to fit renderDiv height, cropped horizontally.
-                    var scale = rH / vNatH; // Scale factor based on height.
-                    var scaledVideoWidth = vNatW * scale; // Width of video if scaled to fit renderDiv height.
-                    // Total original video pixels cropped horizontally (from both sides combined).
+                    var scale = rH / vNatH;
+                    var scaledVideoWidth = vNatW * scale;
                     var totalCroppedPixelsX = (scaledVideoWidth - rW) / scale;
-                    finalVideoPixelX = totalCroppedPixelsX / 2; // Pixels cropped from the left of original video.
-                    finalVideoPixelY = 0; // No vertical cropping.
-                    visibleVideoPixelWidth = vNatW - totalCroppedPixelsX; // Width of the visible part in original video pixels.
-                    visibleVideoPixelHeight = vNatH; // Full height is visible.
+                    finalVideoPixelX = totalCroppedPixelsX / 2;
+                    finalVideoPixelY = 0;
+                    visibleVideoPixelWidth = vNatW - totalCroppedPixelsX;
+                    visibleVideoPixelHeight = vNatH;
                 } else {
-                    // Video is taller than renderDiv (or same AR), scaled to fit renderDiv width, cropped vertically.
-                    var scale1 = rW / vNatW; // Scale factor based on width.
-                    var scaledVideoHeight = vNatH * scale1; // Height of video if scaled to fit renderDiv width.
-                    // Total original video pixels cropped vertically (from top and bottom combined).
+                    var scale1 = rW / vNatW;
+                    var scaledVideoHeight = vNatH * scale1;
                     var totalCroppedPixelsY = (scaledVideoHeight - rH) / scale1;
-                    finalVideoPixelX = 0; // No horizontal cropping.
-                    finalVideoPixelY = totalCroppedPixelsY / 2; // Pixels cropped from the top of original video.
-                    visibleVideoPixelWidth = vNatW; // Full width is visible.
-                    visibleVideoPixelHeight = vNatH - totalCroppedPixelsY; // Height of the visible part in original video pixels.
+                    finalVideoPixelX = 0;
+                    finalVideoPixelY = totalCroppedPixelsY / 2;
+                    visibleVideoPixelWidth = vNatW;
+                    visibleVideoPixelHeight = vNatH - totalCroppedPixelsY;
                 }
-                // Safety check for degenerate cases (e.g., extreme aspect ratios leading to zero visible dimension)
                 if (visibleVideoPixelWidth <= 0 || visibleVideoPixelHeight <= 0) {
-                    // Fallback or log error, this shouldn't happen in normal scenarios
                     console.warn("Calculated visible video dimension is zero or negative.", {
                         visibleVideoPixelWidth: visibleVideoPixelWidth,
                         visibleVideoPixelHeight: visibleVideoPixelHeight
@@ -915,7 +803,6 @@ export var Game = /*#__PURE__*/ function () {
             }
         },
         {
-            // _updateGhosts method removed.
             key: "_showStatusScreen",
             value: function _showStatusScreen(message) {
                 var color = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : 'white', showRestartHint = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : false;
@@ -923,7 +810,6 @@ export var Game = /*#__PURE__*/ function () {
                 this.gameOverText.innerText = message;
                 this.gameOverText.style.color = color;
                 this.restartHintText.style.display = showRestartHint ? 'block' : 'none';
-                // No spawning to stop for template
             }
         },
         {
@@ -932,13 +818,11 @@ export var Game = /*#__PURE__*/ function () {
                 this.gameOverContainer.style.display = 'block';
                 this.gameOverText.innerText = "ERROR: ".concat(message);
                 this.gameOverText.style.color = 'orange';
-                this.restartHintText.style.display = 'true'; // Show restart hint on error
+                this.restartHintText.style.display = 'true';
                 this.gameState = 'error';
-                // No spawning to stop
                 this.hands.forEach(function (hand) {
                     if (hand.lineGroup) hand.lineGroup.visible = false;
                 });
-                // if (this.startButton) this.startButton.style.display = 'none'; // No longer exists
             }
         },
         {
@@ -946,20 +830,16 @@ export var Game = /*#__PURE__*/ function () {
             value: function _startGame() {
                 var _this = this;
                 console.log("Starting tracking...");
-                // This is now called automatically, so no need to check gameState
                 this.musicManager.start().then(function () {
-                    drumManager.startSequence(); // Start drums *after* audio context is ready.
-                    // Setup the waveform visualizer after the music manager is ready
+                    drumManager.startSequence();
                     var analyser = _this.musicManager.getAnalyser();
                     if (analyser) {
                         _this.waveformVisualizer = new WaveformVisualizer(_this.scene, analyser, _this.renderDiv.clientWidth, _this.renderDiv.clientHeight);
                     }
                 });
-                this.gameState = 'tracking'; // Changed from 'playing'
+                this.gameState = 'tracking';
                 this.lastVideoTime = -1;
                 this.clock.start();
-                // Removed display of score, castle, chad
-                // Removed _startSpawning()
             }
         },
         {
@@ -972,33 +852,24 @@ export var Game = /*#__PURE__*/ function () {
                         hand.lineGroup.visible = false;
                     }
                 });
-                // Ghost removal removed
-                // Score reset removed
-                // Visibility of game elements removed
-                this.gameState = 'tracking'; // Changed from 'playing'
+                this.gameState = 'tracking';
                 this.lastVideoTime = -1;
                 this.clock.start();
-                // Removed _startSpawning()
             }
         },
         {
-            // _updateScoreDisplay method removed.
             key: "_onResize",
             value: function _onResize() {
                 var width = this.renderDiv.clientWidth;
                 var height = this.renderDiv.clientHeight;
-                // Update camera perspective
                 this.camera.left = width / -2;
                 this.camera.right = width / 2;
                 this.camera.top = height / 2;
                 this.camera.bottom = height / -2;
                 this.camera.updateProjectionMatrix();
-                // Update renderer size
                 this.renderer.setSize(width, height);
-                // Update video element size
                 this.videoElement.style.width = width + 'px';
                 this.videoElement.style.height = height + 'px';
-                // Watermelon, Chad, GroundLine updates removed.
                 this._positionBeatIndicators();
                 if (this.waveformVisualizer) {
                     this.waveformVisualizer.updatePosition(width, height);
@@ -1010,10 +881,10 @@ export var Game = /*#__PURE__*/ function () {
             value: function _positionBeatIndicators() {
                 var width = this.renderDiv.clientWidth;
                 var height = this.renderDiv.clientHeight;
-                var totalWidth = width * 0.8; // Occupy 80% of screen width to match the waveform
+                var totalWidth = width * 0.8;
                 var spacing = totalWidth / 16;
                 var startX = -totalWidth / 2 + spacing / 2;
-                var yPos = -height / 2 + 150; // Positioned a bit higher from the bottom
+                var yPos = -height / 2 + 150;
                 this.beatIndicators.forEach(function (indicator, i) {
                     indicator.position.set(startX + i * spacing, yPos, 1);
                 });
@@ -1022,9 +893,7 @@ export var Game = /*#__PURE__*/ function () {
         {
             key: "_setupBeatIndicatorMaterials",
             value: function _setupBeatIndicatorMaterials() {
-                // All indicators start as 'off' (white)
                 for (var i = 0; i < 16; i++) {
-                    // We just need one material definition now and will copy it.
                     this.beatIndicatorMaterials[i] = new THREE.MeshBasicMaterial({
                         color: this.beatIndicatorColors.off,
                         transparent: true,
@@ -1039,23 +908,11 @@ export var Game = /*#__PURE__*/ function () {
                 parameters = parameters || {};
                 var fontface = parameters.fontface || 'Arial';
                 var fontsize = parameters.fontsize || 24;
-                // borderColor is no longer needed
-                var backgroundColor = parameters.backgroundColor || {
-                    r: 255,
-                    g: 255,
-                    b: 255,
-                    a: 0.8
-                };
-                var textColor = parameters.textColor || {
-                    r: 0,
-                    g: 0,
-                    b: 0,
-                    a: 1.0
-                };
+                var backgroundColor = parameters.backgroundColor || { r: 255, g: 255, b: 255, a: 0.8 };
+                var textColor = parameters.textColor || { r: 0, g: 0, b: 0, a: 1.0 };
                 var canvas = document.createElement('canvas');
                 var context = canvas.getContext('2d');
                 context.font = "Bold ".concat(fontsize, "px ").concat(fontface);
-                // get size data (height depends only on font size)
                 var metrics = context.measureText(message);
                 var textWidth = metrics.width;
                 var padding = 10;
@@ -1063,22 +920,16 @@ export var Game = /*#__PURE__*/ function () {
                 var canvasHeight = fontsize * 1.4 + padding;
                 canvas.width = canvasWidth;
                 canvas.height = canvasHeight;
-                // Font needs to be re-applied after resizing canvas
                 context.font = "Bold ".concat(fontsize, "px ").concat(fontface);
-                // background color
                 context.fillStyle = "rgba(".concat(backgroundColor.r, ",").concat(backgroundColor.g, ",").concat(backgroundColor.b, ",").concat(backgroundColor.a, ")");
                 context.fillRect(0, 0, canvasWidth, canvasHeight);
-                // text color and position
                 context.fillStyle = "rgba(".concat(textColor.r, ", ").concat(textColor.g, ", ").concat(textColor.b, ", 1.0)");
                 context.textAlign = 'center';
                 context.textBaseline = 'middle';
                 context.fillText(message, canvasWidth / 2, canvasHeight / 2);
-                // canvas contents will be used for a texture
                 var texture = new THREE.CanvasTexture(canvas);
                 texture.needsUpdate = true;
-                var spriteMaterial = new THREE.SpriteMaterial({
-                    map: texture
-                });
+                var spriteMaterial = new THREE.SpriteMaterial({ map: texture });
                 var sprite = new THREE.Sprite(spriteMaterial);
                 sprite.scale.set(canvas.width, canvas.height, 1.0);
                 return sprite;
@@ -1087,20 +938,8 @@ export var Game = /*#__PURE__*/ function () {
         {
             key: "_getFingerStates",
             value: function _getFingerStates(landmarks) {
-                // Landmark indices for fingertips
-                var fingertips = {
-                    index: 8,
-                    middle: 12,
-                    ring: 16,
-                    pinky: 20
-                };
-                // Stricter check using the joint below the tip (PIP joint) to avoid false positives.
-                var fingerJointsBelowTip = {
-                    index: 6,
-                    middle: 10,
-                    ring: 14,
-                    pinky: 18
-                };
+                var fingertips = { index: 8, middle: 12, ring: 16, pinky: 20 };
+                var fingerJointsBelowTip = { index: 6, middle: 10, ring: 14, pinky: 18 };
                 var states = {};
                 var _iteratorNormalCompletion = true, _didIteratorError = false, _iteratorError = undefined;
                 try {
@@ -1108,7 +947,6 @@ export var Game = /*#__PURE__*/ function () {
                         var _step_value = _sliced_to_array(_step.value, 2), finger = _step_value[0], tipIndex = _step_value[1];
                         var jointIndex = fingerJointsBelowTip[finger];
                         if (landmarks[tipIndex] && landmarks[jointIndex]) {
-                            // A finger is "up" if its tip is higher than the joint just below it.
                             states[finger] = landmarks[tipIndex].y < landmarks[jointIndex].y;
                         } else {
                             states[finger] = false;
@@ -1123,9 +961,7 @@ export var Game = /*#__PURE__*/ function () {
                             _iterator.return();
                         }
                     } finally {
-                        if (_didIteratorError) {
-                            throw _iteratorError;
-                        }
+                        if (_didIteratorError) throw _iteratorError;
                     }
                 }
                 return states;
@@ -1135,17 +971,8 @@ export var Game = /*#__PURE__*/ function () {
             key: "_isFist",
             value: function _isFist(landmarks) {
                 if (!landmarks || landmarks.length < 21) return false;
-                // Use the middle finger's MCP joint as a proxy for the palm center
                 var palmCenter = landmarks[9];
-                var fingertipsIndices = [
-                    4,
-                    8,
-                    12,
-                    16,
-                    20
-                ]; // Thumb, Index, Middle, Ring, Pinky
-                // Threshold for normalized landmark distance. If fingertips are further than this from palm, it's not a fist.
-                // This value may need tuning. A smaller value makes the fist detection stricter.
+                var fingertipsIndices = [4, 8, 12, 16, 20];
                 var fistThreshold = 0.1;
                 var _iteratorNormalCompletion = true, _didIteratorError = false, _iteratorError = undefined;
                 try {
@@ -1156,7 +983,7 @@ export var Game = /*#__PURE__*/ function () {
                         var dy = tip.y - palmCenter.y;
                         var distance = Math.sqrt(dx * dx + dy * dy);
                         if (distance > fistThreshold) {
-                            return false; // At least one finger is open
+                            return false;
                         }
                     }
                 } catch (err) {
@@ -1168,12 +995,10 @@ export var Game = /*#__PURE__*/ function () {
                             _iterator.return();
                         }
                     } finally {
-                        if (_didIteratorError) {
-                            throw _iteratorError;
-                        }
+                        if (_didIteratorError) throw _iteratorError;
                     }
                 }
-                return true; // All fingertips are close to the palm
+                return true;
             }
         },
         {
@@ -1182,13 +1007,11 @@ export var Game = /*#__PURE__*/ function () {
                 var _this = this;
                 var hand = this.hands[handIndex];
                 var lineGroup = hand.lineGroup;
-                // Clean up previous frame's objects
                 while (lineGroup.children.length) {
                     var child = lineGroup.children[0];
                     lineGroup.remove(child);
                     if (child.geometry) child.geometry.dispose();
                     if (child.material) {
-                        // For sprites, we need to dispose the texture map as well
                         if (child.material.map) child.material.map.dispose();
                         child.material.dispose();
                     }
@@ -1206,9 +1029,8 @@ export var Game = /*#__PURE__*/ function () {
                     normY_visible = Math.max(0, Math.min(1, normY_visible));
                     var x = (1 - normX_visible) * canvasWidth - canvasWidth / 2;
                     var y = (1 - normY_visible) * canvasHeight - canvasHeight / 2;
-                    return new THREE.Vector3(x, y, 1.1); // Z for fingertip circles
+                    return new THREE.Vector3(x, y, 1.1);
                 });
-                // --- Draw Skeleton Lines ---
                 var lineZ = 1;
                 this.handConnections.forEach(function (conn) {
                     var p1 = points3D[conn[0]];
@@ -1216,15 +1038,11 @@ export var Game = /*#__PURE__*/ function () {
                     if (p1 && p2) {
                         var lineP1 = p1.clone().setZ(lineZ);
                         var lineP2 = p2.clone().setZ(lineZ);
-                        var geometry = new THREE.BufferGeometry().setFromPoints([
-                            lineP1,
-                            lineP2
-                        ]);
+                        var geometry = new THREE.BufferGeometry().setFromPoints([lineP1, lineP2]);
                         var line = new THREE.Line(geometry, _this.handLineMaterial);
                         lineGroup.add(line);
                     }
                 });
-                // --- Draw Fingertip & Wrist Circles ---
                 var fingertipRadius = 8, wristRadius = 12, circleSegments = 16;
                 this.fingertipLandmarkIndices.forEach(function (index) {
                     var landmarkPosition = points3D[index];
@@ -1237,24 +1055,17 @@ export var Game = /*#__PURE__*/ function () {
                         lineGroup.add(landmarkCircle);
                     }
                 });
-                // --- Draw Thumb-to-Index line and Labels ---
                 var thumbPos = points3D[4];
                 var indexPos = points3D[8];
                 var wristPos = points3D[0];
+                var isOneHand = this.currentMode === 'onehand';
+
                 if (wristPos) {
-                    // Labels depend on which hand it is
                     if (handIndex === 0 && thumbPos && indexPos) {
-                        // Connecting line
-                        var lineGeom = new THREE.BufferGeometry().setFromPoints([
-                            thumbPos,
-                            indexPos
-                        ]);
-                        var line = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({
-                            color: 0xffffff,
-                            linewidth: 3
-                        }));
+                        var lineGeom = new THREE.BufferGeometry().setFromPoints([thumbPos, indexPos]);
+                        var line = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3 }));
                         lineGroup.add(line);
-                        // Volume and Pitch labels
+
                         var note = controlData.note, velocity = controlData.velocity, isFist = controlData.isFist;
                         if (isFist) {
                             var fistLabel = this._createTextSprite("SYNTH ".concat(this.musicManager.currentSynthIndex + 1), {
@@ -1278,18 +1089,37 @@ export var Game = /*#__PURE__*/ function () {
                                 backgroundColor: this.labelColors.evaGreen,
                                 textColor: this.labelColors.black
                             });
-                            pitchLabel.position.set(wristPos.x, wristPos.y + 60, 2); // Position above the wrist
+                            pitchLabel.position.set(wristPos.x, wristPos.y + 60, 2);
                             lineGroup.add(pitchLabel);
+
+                            // In one-hand mode, also show which drums are active (middle/ring/pinky only)
+                            if (isOneHand && controlData.fingerStates) {
+                                var activeDrums = ['middle', 'ring', 'pinky']
+                                    .filter(function (f) { return controlData.fingerStates[f]; })
+                                    .map(function (f) { return drumManager.getFingerToDrumMap()[f]; })
+                                    .filter(Boolean)
+                                    .join(', ');
+                                var drumLabel = this._createTextSprite("Drums: ".concat(activeDrums || 'None'), {
+                                    fontsize: 18,
+                                    backgroundColor: this.labelColors.evaRed,
+                                    textColor: this.labelColors.white
+                                });
+                                drumLabel.position.set(wristPos.x, wristPos.y + 90, 2);
+                                lineGroup.add(drumLabel);
+                            }
                         }
                     } else if (handIndex === 1) {
                         var fingerStates = controlData.fingerStates;
-                        var activeDrums = Object.entries(fingerStates).filter(function (param) {
-                            var _param = _sliced_to_array(param, 2), _ = _param[0], isUp = _param[1];
-                            return isUp;
-                        }).map(function (param) {
-                            var _param = _sliced_to_array(param, 2), finger = _param[0], _ = _param[1];
-                            return drumManager.getFingerToDrumMap()[finger];
-                        }).join(', ');
+                        var activeDrums = Object.entries(fingerStates)
+                            .filter(function (param) {
+                                var _param = _sliced_to_array(param, 2), _ = _param[0], isUp = _param[1];
+                                return isUp;
+                            })
+                            .map(function (param) {
+                                var _param = _sliced_to_array(param, 2), finger = _param[0], _ = _param[1];
+                                return drumManager.getFingerToDrumMap()[finger];
+                            })
+                            .join(', ');
                         var drumLabel = this._createTextSprite("Drums: ".concat(activeDrums || 'None'), {
                             fontsize: 18,
                             backgroundColor: this.labelColors.evaRed,
@@ -1328,18 +1158,10 @@ export var Game = /*#__PURE__*/ function () {
                 var activeDrums = drumManager.getActiveDrums();
                 var drumPattern = drumManager.getDrumPattern();
                 var drumPriority = [
-                    'kick',
-                    'snare',
-                    'clap',
-                    'hihat',
-                    'bass_synth',
-                    'bass_drop',
-                    'bell',
-                    'cymbal',
-                    'piano'
+                    'kick', 'snare', 'clap', 'hihat',
+                    'bass_synth', 'bass_drop', 'bell', 'cymbal', 'piano'
                 ];
                 this.beatIndicators.forEach(function (indicator, i) {
-                    // Determine the color for this step based on active drums
                     var stepColor = _this.beatIndicatorColors.off;
                     var isHit = false;
                     var _iteratorNormalCompletion = true, _didIteratorError = false, _iteratorError = undefined;
@@ -1361,14 +1183,11 @@ export var Game = /*#__PURE__*/ function () {
                                 _iterator.return();
                             }
                         } finally {
-                            if (_didIteratorError) {
-                                throw _iteratorError;
-                            }
+                            if (_didIteratorError) throw _iteratorError;
                         }
                     }
                     indicator.material.color.set(stepColor);
                     indicator.material.opacity = isHit ? 0.9 : 0.5;
-                    // Apply pulse only to the current beat marker
                     if (i === currentBeat) {
                         indicator.scale.set(pulse, pulse, 1);
                     } else {
@@ -1381,26 +1200,52 @@ export var Game = /*#__PURE__*/ function () {
             key: "_setupEventListeners",
             value: function _setupEventListeners() {
                 var _this = this;
-                // Add click listener for resuming audio context and potentially restarting on error
                 this.renderDiv.addEventListener('click', function () {
-                    _this.musicManager.start(); // Resume audio context on any click
+                    _this.musicManager.start();
                     if (_this.gameState === 'error') {
                         _this._restartGame();
                     }
                 });
                 // Dynamic Drum Mapping (Dropdowns)
                 var fingerIds = ['f-index', 'f-middle', 'f-ring', 'f-pinky'];
-                fingerIds.forEach(function(id) {
+                fingerIds.forEach(function (id) {
                     var selectElement = document.getElementById(id);
                     if (selectElement) {
-                        selectElement.addEventListener('change', function(event) {
-                            var fingerName = id.replace('f-', ''); // e.g., 'f-index' -> 'index'
+                        selectElement.addEventListener('change', function (event) {
+                            var fingerName = id.replace('f-', '');
                             var instrument = event.target.value;
                             drumManager.updateFingerMapping(fingerName, instrument);
                         });
                     }
                 });
                 console.log('Game event listeners set up.');
+            }
+        },
+        {
+            // --- Mode switching ---
+            // Called by the HTML radio button handler in index.html.
+            key: "setMode",
+            value: function setMode(mode) {
+                var prevMode = this.currentMode;
+                this.currentMode = mode;
+                console.log("Mode switched to:", mode);
+
+                // Transitioning away from a multi-hand mode: clean up hand 1
+                if (mode === 'onehand') {
+                    var hand1 = this.hands[1];
+                    if (hand1) {
+                        this.musicManager.stopArpeggio(1);
+                        drumManager.updateActiveDrums({});
+                        hand1.landmarks = null;
+                        if (hand1.lineGroup) hand1.lineGroup.visible = false;
+                    }
+                }
+
+                // Transitioning from one-hand back to default: clear drum state
+                // so hand 0's drums don't bleed into hand 1's territory
+                if (prevMode === 'onehand' && mode === 'default') {
+                    drumManager.updateActiveDrums({});
+                }
             }
         }
     ]);
