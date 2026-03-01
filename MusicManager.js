@@ -156,6 +156,9 @@ export var MusicManager = /*#__PURE__*/ function() {
         this.activePatterns = new Map();
         // Use a Map to store the current volume (velocity) for each hand's arpeggio
         this.handVolumes = new Map();
+        this.recorder = new Tone.Recorder();
+        Tone.getDestination().connect(this.recorder);
+        // Create a recorder instance so we can record and download it later
         this.synthPresets = [
             // Preset 1: Clean Sine Wave (Default)
             {
@@ -411,6 +414,44 @@ export var MusicManager = /*#__PURE__*/ function() {
             key: "getAnalyser",
             value: function getAnalyser() {
                 return this.analyser;
+            }
+        },
+        {
+            // Start Audio Recording
+            key: "startRecording",
+            value: function startRecording() {
+                if (this.recorder.state !== "started") {
+                    this.recorder.start();
+                    console.log("Recording started...");
+                }
+            }
+        },
+        {
+            // Stop Audio Recording
+            key: "stopRecording",
+            value: function stopRecording() {
+                var _this = this;
+                return _async_to_generator(function() {
+                    var blob, url, anchor;
+                    return _ts_generator(this, function(_state) {
+                        switch (_state.label) {
+                            case 0:
+                                if (_this.recorder.state !== "started") return [2];
+                                return [4, _this.recorder.stop()];
+                            case 1:
+                                blob = _state.sent();
+                                // Create download link
+                                url = URL.createObjectURL(blob);
+                                anchor = document.createElement("a");
+                                anchor.download = "epidaurus.webm";
+                                anchor.href = url;
+                                anchor.click();
+                                
+                                console.log("Recording saved and download triggered.");
+                                return [2];
+                        }
+                    });
+                })();
             }
         }
     ]);

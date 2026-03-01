@@ -1218,6 +1218,27 @@ export var Game = /*#__PURE__*/ function () {
                         });
                     }
                 });
+
+                var recordBtn = document.getElementById('record-btn');
+                var isRecording = false;
+
+                if (recordBtn) {
+                    recordBtn.addEventListener('click', function() {
+                        if (!isRecording) {
+                            _this.musicManager.startRecording();
+                            recordBtn.innerText = "■ STOP & DOWNLOAD";
+                            recordBtn.style.background = "#ffffff";
+                            recordBtn.style.color = "#000000";
+                            isRecording = true;
+                        } else {
+                            _this.musicManager.stopRecording();
+                            recordBtn.innerText = "● START RECORDING";
+                            recordBtn.style.background = "var(--eva-red)";
+                            recordBtn.style.color = "white";
+                            isRecording = false;
+                        }
+                    });
+                }
                 console.log('Game event listeners set up.');
             }
         },
