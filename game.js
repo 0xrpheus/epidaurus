@@ -266,15 +266,18 @@ function _ts_generator(thisArg, body) {
 	}
 }
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"; // Import GLTFLoader
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
 	HandLandmarker,
 	FilesetResolver,
 } from "https://esm.sh/@mediapipe/tasks-vision@0.10.14";
-import { MusicManager } from "./MusicManager.js"; // Import the MusicManager
-import * as Tone from "https://esm.sh/tone"; // Import Tone to access Transport
-import * as drumManager from "./DrumManager.js"; // Import the new drum manager module
-import { WaveformVisualizer } from "./WaveformVisualizer.js"; // Import the new waveform visualizer
+import { MusicManager } from "./MusicManager.js";
+import * as Tone from "https://esm.sh/tone";
+import * as drumManager from "./DrumManager.js";
+import { WaveformVisualizer } from "./WaveformVisualizer.js";
+// ── NEW: VoiceManager ──────────────────────────────────────────────────────
+import { VoiceManager } from "./VoiceManager.js";
+
 export var Game = /*#__PURE__*/ (function () {
 	"use strict";
 	function Game(renderDiv) {
@@ -287,22 +290,22 @@ export var Game = /*#__PURE__*/ (function () {
 		this.videoElement = null;
 		this.handLandmarker = null;
 		this.lastVideoTime = -1;
-		this.hands = []; // Stores data about detected hands (landmarks, anchor position, line group)
-		this.handLineMaterial = null; // Material for hand lines
-		this.fingertipMaterialHand1 = null; // Material for first hand's fingertip circles (blue)
-		this.fingertipMaterialHand2 = null; // Material for second hand's fingertip circles (green)
-		this.fingertipLandmarkIndices = [0, 4, 8, 12, 16, 20]; // WRIST + TIP landmarks
-		this.handConnections = null; // Landmark connection definitions
-		this.gameState = "loading"; // loading, ready, tracking, error
+		this.hands = [];
+		this.handLineMaterial = null;
+		this.fingertipMaterialHand1 = null;
+		this.fingertipMaterialHand2 = null;
+		this.fingertipLandmarkIndices = [0, 4, 8, 12, 16, 20];
+		this.handConnections = null;
+		this.gameState = "loading";
 		this.gameOverText = null;
 		this.clock = new THREE.Clock();
-		this.musicManager = new MusicManager(); // Create an instance of MusicManager
-		this.waveformVisualizer = null; // To be initialized
-		this.lastLandmarkPositions = [[], []]; // Store last known smoothed positions for each hand's landmarks
-		this.smoothingFactor = 0.4; // Alpha for exponential smoothing (0 < alpha <= 1). Smaller = more smoothing.
+		this.musicManager = new MusicManager();
+		this.waveformVisualizer = null;
+		this.lastLandmarkPositions = [[], []];
+		this.smoothingFactor = 0.4;
 		this.loadedModels = {};
-		this.beatIndicators = []; // Array to hold the 16 beat indicator meshes
-		this.beatIndicatorMaterials = []; // Array to hold the base material for each indicator
+		this.beatIndicators = [];
+		this.beatIndicatorMaterials = [];
 		this.beatIndicatorColors = {
 			kick: new THREE.Color("#D72828"),
 			snare: new THREE.Color("#F36E2F"),
@@ -317,42 +320,12 @@ export var Game = /*#__PURE__*/ (function () {
 		};
 		this.beatIndicatorGroup = null;
 		this.labelColors = {
-			evaPurple: {
-				r: 123,
-				g: 67,
-				b: 148,
-				a: 0.9,
-			},
-			evaGreen: {
-				r: 132,
-				g: 195,
-				b: 78,
-				a: 0.9,
-			},
-			evaOrange: {
-				r: 243,
-				g: 110,
-				b: 47,
-				a: 0.9,
-			},
-			evaRed: {
-				r: 215,
-				g: 40,
-				b: 40,
-				a: 0.9,
-			},
-			white: {
-				r: 255,
-				g: 255,
-				b: 255,
-				a: 1.0,
-			},
-			black: {
-				r: 0,
-				g: 0,
-				b: 0,
-				a: 1.0,
-			},
+			evaPurple: { r: 123, g: 67, b: 148, a: 0.9 },
+			evaGreen: { r: 132, g: 195, b: 78, a: 0.9 },
+			evaOrange: { r: 243, g: 110, b: 47, a: 0.9 },
+			evaRed: { r: 215, g: 40, b: 40, a: 0.9 },
+			white: { r: 255, g: 255, b: 255, a: 1.0 },
+			black: { r: 0, g: 0, b: 0, a: 1.0 },
 		};
 		this.waveformColors = [
 			new THREE.Color("#7B4394"),
@@ -367,19 +340,20 @@ export var Game = /*#__PURE__*/ (function () {
 			new THREE.Color("#A259FF"),
 		];
 
-		// --- Mode ---
-		// 'default' | 'onehand' | 'voice'
+		// --- Mode --- 'default' | 'onehand' | 'voice'
 		this.currentMode = "default";
 
-		// --- Microphone Constructors ---
-		this.isMicOn = false; //tells if mic is on or off
-		this.micStream = null; //stores live microphone feed
-		this.micAnalyser = null; //reads mic audio levels to help tell if we are in listening or recieving state
-		this.micData = null; //array used to store
-		this.micRAF = null; //keeps updating mic level
-		this.micMonitorEl = null; //holds the live audio that gets played back through speakers
+		// ── VoiceManager instance (created lazily on first voice mode switch) ──
+		this.voiceManager = null;
 
-		// Initialize asynchronously
+		// --- Microphone ---
+		this.isMicOn = false;
+		this.micStream = null;
+		this.micAnalyser = null;
+		this.micData = null;
+		this.micRAF = null;
+		this.micMonitorEl = null;
+
 		this._init().catch(function (error) {
 			console.error("Initialization failed:", error);
 			_this._showError("Initialization failed. Check console.");
@@ -701,6 +675,10 @@ export var Game = /*#__PURE__*/ (function () {
 					this.videoElement.videoWidth === 0
 				)
 					return;
+
+				// In voice-only mode, skip hand tracking entirely
+				if (this.currentMode === "voice") return;
+
 				var videoTime = this.videoElement.currentTime;
 				if (videoTime > this.lastVideoTime) {
 					this.lastVideoTime = videoTime;
@@ -713,7 +691,6 @@ export var Game = /*#__PURE__*/ (function () {
 						if (!videoParams) return;
 						var canvasWidth = this.renderDiv.clientWidth;
 						var canvasHeight = this.renderDiv.clientHeight;
-						// C Minor Pentatonic Scale
 						var scale = [
 							"C3",
 							"Eb3",
@@ -728,14 +705,9 @@ export var Game = /*#__PURE__*/ (function () {
 							"C5",
 							"Eb5",
 						];
-
 						var isOneHand = this.currentMode === "onehand";
-
-						// Determine how many hand slots to process.
-						// In one-hand mode we only process slot 0 and force slot 1 invisible.
 						var handsToProcess = isOneHand ? 1 : this.hands.length;
 
-						// In one-hand mode, ensure hand slot 1 is hidden and its arpeggio stopped.
 						if (isOneHand) {
 							var hand1 = this.hands[1];
 							if (hand1.landmarks !== null) {
@@ -811,7 +783,6 @@ export var Game = /*#__PURE__*/ (function () {
 								hand.anchorPos.set(handX, handY, 1);
 
 								if (i === 0) {
-									// --- Music & Gesture Control (hand 0 — always) ---
 									var isFistNow =
 										_this1._isFist(smoothedLandmarks);
 									if (isFistNow && !hand.isFist) {
@@ -859,8 +830,6 @@ export var Game = /*#__PURE__*/ (function () {
 										Math.min(1.0, distance * 5),
 									);
 
-									// --- One-hand mode: also drive the drum machine from hand 0 ---
-									// Index finger is reserved for pinch/volume — exclude it from drum states.
 									if (isOneHand) {
 										if (isFistNow) {
 											drumManager.updateActiveDrums({});
@@ -890,7 +859,6 @@ export var Game = /*#__PURE__*/ (function () {
 											note: note,
 											velocity: velocity,
 											isFist: isFistNow,
-											// Pass only drum-eligible finger states for the label in one-hand mode
 											fingerStates: isOneHand
 												? (function () {
 														var s =
@@ -931,7 +899,6 @@ export var Game = /*#__PURE__*/ (function () {
 										_this1.musicManager.stopArpeggio(i);
 									}
 								} else if (i === 1) {
-									// --- Drum Control (hand 1 — two-hand mode only) ---
 									var fingerStates =
 										_this1._getFingerStates(
 											smoothedLandmarks,
@@ -943,9 +910,7 @@ export var Game = /*#__PURE__*/ (function () {
 										videoParams,
 										canvasWidth,
 										canvasHeight,
-										{
-											fingerStates: fingerStates,
-										},
+										{ fingerStates: fingerStates },
 									);
 								}
 
@@ -954,10 +919,8 @@ export var Game = /*#__PURE__*/ (function () {
 								if (wasVisible) {
 									if (i === 0) {
 										_this1.musicManager.stopArpeggio(i);
-										// In one-hand mode, clearing drums is handled here too
-										if (isOneHand) {
+										if (isOneHand)
 											drumManager.updateActiveDrums({});
-										}
 									} else if (i === 1) {
 										drumManager.updateActiveDrums({});
 									}
@@ -980,9 +943,8 @@ export var Game = /*#__PURE__*/ (function () {
 					!this.videoElement ||
 					this.videoElement.videoWidth === 0 ||
 					this.videoElement.videoHeight === 0
-				) {
+				)
 					return null;
-				}
 				var vNatW = this.videoElement.videoWidth;
 				var vNatH = this.videoElement.videoHeight;
 				var rW = this.renderDiv.clientWidth;
@@ -991,8 +953,10 @@ export var Game = /*#__PURE__*/ (function () {
 					return null;
 				var videoAR = vNatW / vNatH;
 				var renderDivAR = rW / rH;
-				var finalVideoPixelX, finalVideoPixelY;
-				var visibleVideoPixelWidth, visibleVideoPixelHeight;
+				var finalVideoPixelX,
+					finalVideoPixelY,
+					visibleVideoPixelWidth,
+					visibleVideoPixelHeight;
 				if (videoAR > renderDivAR) {
 					var scale = rH / vNatH;
 					var scaledVideoWidth = vNatW * scale;
@@ -1014,13 +978,6 @@ export var Game = /*#__PURE__*/ (function () {
 					visibleVideoPixelWidth <= 0 ||
 					visibleVideoPixelHeight <= 0
 				) {
-					console.warn(
-						"Calculated visible video dimension is zero or negative.",
-						{
-							visibleVideoPixelWidth: visibleVideoPixelWidth,
-							visibleVideoPixelHeight: visibleVideoPixelHeight,
-						},
-					);
 					return {
 						offsetX: 0,
 						offsetY: 0,
@@ -1044,13 +1001,13 @@ export var Game = /*#__PURE__*/ (function () {
 			key: "_showStatusScreen",
 			value: function _showStatusScreen(message) {
 				var color =
-						arguments.length > 1 && arguments[1] !== void 0
-							? arguments[1]
-							: "white",
-					showRestartHint =
-						arguments.length > 2 && arguments[2] !== void 0
-							? arguments[2]
-							: false;
+					arguments.length > 1 && arguments[1] !== void 0
+						? arguments[1]
+						: "white";
+				var showRestartHint =
+					arguments.length > 2 && arguments[2] !== void 0
+						? arguments[2]
+						: false;
 				this.gameOverContainer.style.display = "block";
 				this.gameOverText.innerText = message;
 				this.gameOverText.style.color = color;
@@ -1100,9 +1057,7 @@ export var Game = /*#__PURE__*/ (function () {
 				console.log("Restarting tracking...");
 				this.gameOverContainer.style.display = "none";
 				this.hands.forEach(function (hand) {
-					if (hand.lineGroup) {
-						hand.lineGroup.visible = false;
-					}
+					if (hand.lineGroup) hand.lineGroup.visible = false;
 				});
 				this.gameState = "tracking";
 				this.lastVideoTime = -1;
@@ -1123,9 +1078,8 @@ export var Game = /*#__PURE__*/ (function () {
 				this.videoElement.style.width = width + "px";
 				this.videoElement.style.height = height + "px";
 				this._positionBeatIndicators();
-				if (this.waveformVisualizer) {
+				if (this.waveformVisualizer)
 					this.waveformVisualizer.updatePosition(width, height);
-				}
 			},
 		},
 		{
@@ -1228,9 +1182,9 @@ export var Game = /*#__PURE__*/ (function () {
 							.done);
 						_iteratorNormalCompletion = true
 					) {
-						var _step_value = _sliced_to_array(_step.value, 2),
-							finger = _step_value[0],
-							tipIndex = _step_value[1];
+						var _step_value = _sliced_to_array(_step.value, 2);
+						var finger = _step_value[0];
+						var tipIndex = _step_value[1];
 						var jointIndex = fingerJointsBelowTip[finger];
 						if (landmarks[tipIndex] && landmarks[jointIndex]) {
 							states[finger] =
@@ -1247,9 +1201,8 @@ export var Game = /*#__PURE__*/ (function () {
 						if (
 							!_iteratorNormalCompletion &&
 							_iterator.return != null
-						) {
+						)
 							_iterator.return();
-						}
 					} finally {
 						if (_didIteratorError) throw _iteratorError;
 					}
@@ -1280,9 +1233,7 @@ export var Game = /*#__PURE__*/ (function () {
 						var dx = tip.x - palmCenter.x;
 						var dy = tip.y - palmCenter.y;
 						var distance = Math.sqrt(dx * dx + dy * dy);
-						if (distance > fistThreshold) {
-							return false;
-						}
+						if (distance > fistThreshold) return false;
 					}
 				} catch (err) {
 					_didIteratorError = true;
@@ -1292,9 +1243,8 @@ export var Game = /*#__PURE__*/ (function () {
 						if (
 							!_iteratorNormalCompletion &&
 							_iterator.return != null
-						) {
+						)
 							_iterator.return();
-						}
 					} finally {
 						if (_didIteratorError) throw _iteratorError;
 					}
@@ -1349,16 +1299,12 @@ export var Game = /*#__PURE__*/ (function () {
 					var p1 = points3D[conn[0]];
 					var p2 = points3D[conn[1]];
 					if (p1 && p2) {
-						var lineP1 = p1.clone().setZ(lineZ);
-						var lineP2 = p2.clone().setZ(lineZ);
 						var geometry = new THREE.BufferGeometry().setFromPoints(
-							[lineP1, lineP2],
+							[p1.clone().setZ(lineZ), p2.clone().setZ(lineZ)],
 						);
-						var line = new THREE.Line(
-							geometry,
-							_this.handLineMaterial,
+						lineGroup.add(
+							new THREE.Line(geometry, _this.handLineMaterial),
 						);
-						lineGroup.add(line);
 					}
 				});
 				var fingertipRadius = 8,
@@ -1395,14 +1341,15 @@ export var Game = /*#__PURE__*/ (function () {
 						var lineGeom = new THREE.BufferGeometry().setFromPoints(
 							[thumbPos, indexPos],
 						);
-						var line = new THREE.Line(
-							lineGeom,
-							new THREE.LineBasicMaterial({
-								color: 0xffffff,
-								linewidth: 3,
-							}),
+						lineGroup.add(
+							new THREE.Line(
+								lineGeom,
+								new THREE.LineBasicMaterial({
+									color: 0xffffff,
+									linewidth: 3,
+								}),
+							),
 						);
-						lineGroup.add(line);
 
 						var note = controlData.note,
 							velocity = controlData.velocity,
@@ -1455,7 +1402,6 @@ export var Game = /*#__PURE__*/ (function () {
 							);
 							lineGroup.add(pitchLabel);
 
-							// In one-hand mode, also show which drums are active (middle/ring/pinky only)
 							if (isOneHand && controlData.fingerStates) {
 								var activeDrums = ["middle", "ring", "pinky"]
 									.filter(function (f) {
@@ -1489,16 +1435,12 @@ export var Game = /*#__PURE__*/ (function () {
 						var fingerStates = controlData.fingerStates;
 						var activeDrums = Object.entries(fingerStates)
 							.filter(function (param) {
-								var _param = _sliced_to_array(param, 2),
-									_ = _param[0],
-									isUp = _param[1];
-								return isUp;
+								var _p = _sliced_to_array(param, 2);
+								return _p[1];
 							})
 							.map(function (param) {
-								var _param = _sliced_to_array(param, 2),
-									finger = _param[0],
-									_ = _param[1];
-								return drumManager.getFingerToDrumMap()[finger];
+								var _p = _sliced_to_array(param, 2);
+								return drumManager.getFingerToDrumMap()[_p[0]];
 							})
 							.join(", ");
 						var drumLabel = this._createTextSprite(
@@ -1521,12 +1463,11 @@ export var Game = /*#__PURE__*/ (function () {
 			value: function _animate() {
 				requestAnimationFrame(this._animate.bind(this));
 				if (this.gameState === "tracking") {
-					var deltaTime = this.clock.getDelta();
+					this.clock.getDelta();
 					this._updateHands();
 					this._updateBeatIndicator();
-					if (this.waveformVisualizer) {
+					if (this.waveformVisualizer)
 						this.waveformVisualizer.update();
-					}
 				}
 				this.renderer.render(this.scene, this.camera);
 			},
@@ -1552,6 +1493,7 @@ export var Game = /*#__PURE__*/ (function () {
 					"cymbal",
 					"piano",
 				];
+
 				this.beatIndicators.forEach(function (indicator, i) {
 					var stepColor = _this.beatIndicatorColors.off;
 					var isHit = false;
@@ -1581,9 +1523,8 @@ export var Game = /*#__PURE__*/ (function () {
 							if (
 								!_iteratorNormalCompletion &&
 								_iterator.return != null
-							) {
+							)
 								_iterator.return();
-							}
 						} finally {
 							if (_didIteratorError) throw _iteratorError;
 						}
@@ -1604,11 +1545,9 @@ export var Game = /*#__PURE__*/ (function () {
 				var _this = this;
 				this.renderDiv.addEventListener("click", function () {
 					_this.musicManager.start();
-					if (_this.gameState === "error") {
-						_this._restartGame();
-					}
+					if (_this.gameState === "error") _this._restartGame();
 				});
-				// Dynamic Drum Mapping (Dropdowns)
+
 				var fingerIds = ["f-index", "f-middle", "f-ring", "f-pinky"];
 				fingerIds.forEach(function (id) {
 					var selectElement = document.getElementById(id);
@@ -1617,16 +1556,16 @@ export var Game = /*#__PURE__*/ (function () {
 							"change",
 							function (event) {
 								var fingerName = id.replace("f-", "");
-								var instrument = event.target.value;
 								drumManager.updateFingerMapping(
 									fingerName,
-									instrument,
+									event.target.value,
 								);
 							},
 						);
 					}
 				});
 
+				// ── Mic toggle ──────────────────────────────────────────────
 				const micBtn = document.getElementById("mic-toggle");
 				const micStatus = document.getElementById("mic-status");
 				let isMicActive = false;
@@ -1634,19 +1573,13 @@ export var Game = /*#__PURE__*/ (function () {
 				if (micBtn) {
 					micBtn.onclick = async () => {
 						isMicActive = !isMicActive;
-
-						// Ensure music manager is started first
 						if (!_this.musicManager.isStarted)
 							await _this.musicManager.start();
-
-						// Toggle the audio in MusicManager
 						_this.musicManager.toggleMic(isMicActive);
-
-						// Update the Button Look
 						if (isMicActive) {
 							micBtn.innerText = "STOP MICROPHONE";
 							micBtn.style.background = "var(--eva-green)";
-							micBtn.style.color = "#0a0a0f"; // Dark text on green
+							micBtn.style.color = "#0a0a0f";
 							if (micStatus)
 								micStatus.innerText = "MIC: RECEIVING";
 						} else {
@@ -1657,20 +1590,18 @@ export var Game = /*#__PURE__*/ (function () {
 						}
 					};
 				}
-				// --- AI Synth Generator Logic ---
+
+				// ── AI Synth ────────────────────────────────────────────────
 				var aiBtn = document.getElementById("ai-generate-btn");
 				var aiInput = document.getElementById("ai-vibe-input");
-
 				if (aiBtn && aiInput) {
 					aiBtn.addEventListener("click", async function () {
 						var vibe = aiInput.value.trim();
 						if (!vibe) return;
-
 						var originalText = aiBtn.innerText;
 						aiBtn.innerText = "GENERATING...";
 						aiBtn.style.opacity = "0.7";
 						aiBtn.disabled = true;
-
 						try {
 							var response = await fetch(
 								"https://epidaurus-production.up.railway.app/api/generate-synth",
@@ -1679,22 +1610,17 @@ export var Game = /*#__PURE__*/ (function () {
 									headers: {
 										"Content-Type": "application/json",
 									},
-									body: JSON.stringify({ vibe: vibe }),
+									body: JSON.stringify({ vibe }),
 								},
 							);
-
 							if (!response.ok) throw new Error("Server error");
-
 							var data = await response.json();
-
 							_this.musicManager.applyAIPreset(data.preset);
-
 							if (_this.waveformVisualizer && data.color) {
 								_this.waveformVisualizer.updateColor(
 									new THREE.Color(data.color),
 								);
 							}
-
 							console.log(
 								"Successfully generated vibe: " + vibe,
 								data,
@@ -1712,13 +1638,16 @@ export var Game = /*#__PURE__*/ (function () {
 					});
 				}
 
-				// Recording
+				// ── Recording ───────────────────────────────────────────────
 				var recordBtn = document.getElementById("record-btn");
 				var isRecording = false;
-
 				if (recordBtn) {
 					recordBtn.addEventListener("click", function () {
 						if (!isRecording) {
+							// If in voice mode, mic is already open — recording captures it.
+							// If NOT in voice mode but user wants mic in recording, they should
+							// use the mic toggle button first. Either way, no extra action needed:
+							// MusicManager routes mic → Tone.getDestination() → Recorder.
 							_this.musicManager.startRecording();
 							recordBtn.innerText = "■ STOP & DOWNLOAD";
 							recordBtn.style.background = "#ffffff";
@@ -1733,21 +1662,41 @@ export var Game = /*#__PURE__*/ (function () {
 						}
 					});
 				}
+
 				console.log("Game event listeners set up.");
 			},
 		},
 		{
-			// --- Mode switching ---
-			// Called by the HTML radio button handler in index.html.
+			// ── Mode switching ───────────────────────────────────────────────
 			key: "setMode",
-			value: function setMode(mode) {
+			value: async function setMode(mode) {
 				var prevMode = this.currentMode;
 				this.currentMode = mode;
 				console.log("Mode switched to:", mode);
 
-				// Transitioning away from a multi-hand mode: clean up hand 1
+				// ── Leaving voice mode ──
+				if (prevMode === "voice" && mode !== "voice") {
+					if (this.voiceManager) this.voiceManager.stop();
+					// Close mic (unless user explicitly toggled it on themselves)
+					this.musicManager.toggleMic(false);
+					const micBtn = document.getElementById("mic-toggle");
+					const micStatus = document.getElementById("mic-status");
+					if (micBtn) {
+						micBtn.innerText = "START MICROPHONE";
+						micBtn.style.background = "rgba(255,255,255,0.05)";
+						micBtn.style.color = "var(--text-primary)";
+					}
+					if (micStatus) micStatus.innerText = "MIC: OFF";
+
+					// Show the voice panel back to normal
+					const voicePanel =
+						document.getElementById("voice-mode-panel");
+					if (voicePanel) voicePanel.style.display = "none";
+				}
+
+				// ── Entering one-hand mode ──
 				if (mode === "onehand") {
-					var hand1 = this.hands[1];
+					const hand1 = this.hands[1];
 					if (hand1) {
 						this.musicManager.stopArpeggio(1);
 						drumManager.updateActiveDrums({});
@@ -1756,10 +1705,65 @@ export var Game = /*#__PURE__*/ (function () {
 					}
 				}
 
-				// Transitioning from one-hand back to default: clear drum state
-				// so hand 0's drums don't bleed into hand 1's territory
+				// ── Leaving one-hand → default ──
 				if (prevMode === "onehand" && mode === "default") {
 					drumManager.updateActiveDrums({});
+				}
+
+				// ── Entering voice mode ──
+				if (mode === "voice") {
+					// Ensure audio context is started
+					if (!this.musicManager.isStarted)
+						await this.musicManager.start();
+
+					// Auto-open mic so voice is captured in recordings
+					this.musicManager.toggleMic(true);
+					const micBtn = document.getElementById("mic-toggle");
+					const micStatus = document.getElementById("mic-status");
+					if (micBtn) {
+						micBtn.innerText = "STOP MICROPHONE";
+						micBtn.style.background = "var(--eva-green)";
+						micBtn.style.color = "#0a0a0f";
+					}
+					if (micStatus) micStatus.innerText = "MIC: RECEIVING";
+
+					// Show voice panel
+					const voicePanel =
+						document.getElementById("voice-mode-panel");
+					if (voicePanel) voicePanel.style.display = "block";
+
+					// Create or restart VoiceManager
+					if (!this.voiceManager) {
+						this.voiceManager = new VoiceManager(
+							drumManager,
+							this.musicManager,
+							this,
+							// onStatusChange
+							(status) => {
+								const el =
+									document.getElementById("voice-status");
+								if (el) el.textContent = status;
+							},
+							// onCommandFired
+							(label) => {
+								const el = document.getElementById(
+									"voice-command-flash",
+								);
+								if (el) {
+									el.textContent = label;
+									el.classList.add("flash-active");
+									setTimeout(
+										() =>
+											el.classList.remove("flash-active"),
+										700,
+									);
+								}
+							},
+						);
+					} else {
+						this.voiceManager.start();
+					}
+					this.voiceManager.start();
 				}
 			},
 		},
@@ -1769,23 +1773,19 @@ export var Game = /*#__PURE__*/ (function () {
 				this.micStream = await navigator.mediaDevices.getUserMedia({
 					audio: true,
 				});
-
-				// Live mic monitoring (hear yourself)
 				if (!this.micMonitorEl) {
 					this.micMonitorEl = document.createElement("audio");
 					this.micMonitorEl.autoplay = true;
 					this.micMonitorEl.muted = false;
-					this.micMonitorEl.volume = 0.2; // try 0.2 if feedback is bad
-					document.body.appendChild(this.micMonitorEl); // optional
+					this.micMonitorEl.volume = 0.2;
+					document.body.appendChild(this.micMonitorEl);
 				}
-
 				this.micMonitorEl.srcObject = this.micStream;
-				await this.micMonitorEl.play(); // Some browsers/electron require an explicit play() after a user gesture
+				await this.micMonitorEl.play();
 				const audioCtx = new (
 					window.AudioContext || window.webkitAudioContext
 				)();
 				const source = audioCtx.createMediaStreamSource(this.micStream);
-
 				this.micAnalyser = audioCtx.createAnalyser();
 				this.micAnalyser.fftSize = 512;
 				this.micData = new Uint8Array(
@@ -1799,36 +1799,28 @@ export var Game = /*#__PURE__*/ (function () {
 		{
 			key: "stopMic",
 			value: function stopMic() {
-				if (this.micStream) {
-					this.micStream.getTracks().forEach((track) => track.stop());
-				}
+				if (this.micStream)
+					this.micStream.getTracks().forEach((t) => t.stop());
 				this.isMicOn = false;
 				if (this.micRAF) cancelAnimationFrame(this.micRAF);
-				// Stop mic monitoring
 				if (this.micMonitorEl) {
 					this.micMonitorEl.pause();
 					this.micMonitorEl.srcObject = null;
-					// optional: remove from DOM
 					this.micMonitorEl.remove();
 					this.micMonitorEl = null;
 				}
 			},
 		},
 		{
-			key: "updateMicLevel", //like life volume checker that updates if the mic is listening or not
+			key: "updateMicLevel",
 			value: function updateMicLevel() {
 				if (!this.isMicOn) return;
-
 				const micStatus = document.getElementById("mic-status");
 				this.micAnalyser.getByteFrequencyData(this.micData);
-
 				let sum = 0;
-				for (let i = 0; i < this.micData.length; i++) {
+				for (let i = 0; i < this.micData.length; i++)
 					sum += this.micData[i];
-				}
-
 				const avg = sum / this.micData.length;
-
 				if (avg > 10) {
 					micStatus.textContent = "Mic: receiving";
 				} else {
