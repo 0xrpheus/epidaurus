@@ -58,6 +58,7 @@ npx electron-builder
 - **Three.js** — real-time WebGL waveform visualizer
 - **Electron** — desktop app wrapper
 - **Gemini API** — automates synthesizer presets based on user input
+- **Hosting** — Vercel (frontend) and Railway (backend)
 - **Web Speech API** — voice command support *(in progress)*
 
 ## Requirements
@@ -76,3 +77,10 @@ Built on top of the [hand gesture arpeggiator](https://github.com/collidingScope
 - Three.js — https://threejs.org/
 - MediaPipe — https://mediapipe.dev/
 - Tone.js — https://tonejs.github.io/
+
+## Contributors
+- Vaibhav Achuthananda
+- Shasha Alvares
+- Ravisara Cheakdkaipejchara
+
+## Team Name: 
