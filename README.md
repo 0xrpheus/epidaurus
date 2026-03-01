@@ -55,12 +55,13 @@ npx electron-builder
 - **Tone.js** — synthesizer, sequencer, and audio effects
 - **Three.js** — real-time WebGL waveform visualizer
 - **Electron** — desktop app wrapper
+- **Gemini API** — automates synthesizer presets based on user input
 - **Web Speech API** — voice command support *(in progress)*
 
 ## Requirements
 
 - Modern browser with WebGL support (Chrome recommended)
-- Webcam access
+- Webcam and microphone access
 
 ## License
 
