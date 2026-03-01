@@ -673,7 +673,9 @@ export var Game = /*#__PURE__*/ function () {
 
                                     if (_this1.waveformVisualizer) {
                                         var colorIndex = noteIndex % _this1.waveformColors.length;
-                                        _this1.waveformVisualizer.updateColor(_this1.waveformColors[colorIndex]);
+                                        if (!_this1.musicManager.isUsingAIPreset) {
+                                            _this1.waveformVisualizer.updateColor(_this1.waveformColors[colorIndex]);
+                                        }
                                     }
 
                                     var thumbTip = smoothedLandmarks[4];
@@ -1076,7 +1078,10 @@ export var Game = /*#__PURE__*/ function () {
 
                         var note = controlData.note, velocity = controlData.velocity, isFist = controlData.isFist;
                         if (isFist) {
-                            var fistLabel = this._createTextSprite("SYNTH ".concat(this.musicManager.currentSynthIndex + 1), {
+                            var labelText = this.musicManager.isUsingAIPreset
+                                ? "AI SYNTH"
+                                : "SYNTH ".concat(this.musicManager.currentSynthIndex + 1);
+                            var fistLabel = this._createTextSprite(labelText, {
                                 fontsize: 22,
                                 backgroundColor: this.labelColors.evaPurple,
                                 textColor: this.labelColors.evaGreen
@@ -1255,13 +1260,56 @@ export var Game = /*#__PURE__*/ function () {
                         }
                     };
                 }
+                // --- AI Synth Generator Logic ---
+                var aiBtn = document.getElementById('ai-generate-btn');
+                var aiInput = document.getElementById('ai-vibe-input');
+
+                if (aiBtn && aiInput) {
+                    aiBtn.addEventListener('click', async function () {
+                        var vibe = aiInput.value.trim();
+                        if (!vibe) return;
+
+                        var originalText = aiBtn.innerText;
+                        aiBtn.innerText = "GENERATING...";
+                        aiBtn.style.opacity = "0.7";
+                        aiBtn.disabled = true;
+
+                        try {
+                            var response = await fetch('http://localhost:3000/api/generate-synth', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ vibe: vibe })
+                            });
+
+                            if (!response.ok) throw new Error("Server error");
+
+                            var data = await response.json();
+
+                            _this.musicManager.applyAIPreset(data.preset);
+
+                            if (_this.waveformVisualizer && data.color) {
+                                _this.waveformVisualizer.updateColor(new THREE.Color(data.color));
+                            }
+
+                            console.log("Successfully generated vibe: " + vibe, data);
+
+                        } catch (err) {
+                            console.error("AI Generation failed:", err);
+                            alert("Failed to generate synth. Make sure the backend server is running.");
+                        } finally {
+                            aiBtn.innerText = "GENERATE PRESET";
+                            aiBtn.style.opacity = "1";
+                            aiBtn.disabled = false;
+                        }
+                    });
+                }
 
                 // Recording
                 var recordBtn = document.getElementById('record-btn');
                 var isRecording = false;
-                
+
                 if (recordBtn) {
-                    recordBtn.addEventListener('click', function() {
+                    recordBtn.addEventListener('click', function () {
                         if (!isRecording) {
                             _this.musicManager.startRecording();
                             recordBtn.innerText = "■ STOP & DOWNLOAD";
@@ -1320,7 +1368,7 @@ export var Game = /*#__PURE__*/ function () {
                     this.micMonitorEl.volume = 0.2;   // try 0.2 if feedback is bad
                     document.body.appendChild(this.micMonitorEl); // optional 
                 }
-                
+
                 this.micMonitorEl.srcObject = this.micStream;
                 await this.micMonitorEl.play();  // Some browsers/electron require an explicit play() after a user gesture
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1375,6 +1423,6 @@ export var Game = /*#__PURE__*/ function () {
                 this.micRAF = requestAnimationFrame(this.updateMicLevel.bind(this));
             }
         }
-]);
+    ]);
     return Game;
 }();

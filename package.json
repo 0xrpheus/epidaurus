@@ -1,7 +1,7 @@
 {
-    "name": "arpeggiator",
+    "name": "ayre",
     "version": "1.0.0",
-    "description": "Hand-controlled arpeggiator, drum machine, and audio reactive visualizer. Raise your hands to raise the roof!",
+    "description": "Hand-controlled arpeggiator, drum machine, and audio reactive visualizer.",
     "main": "electron-main.js",
     "scripts": {
         "start": "electron .",
@@ -13,8 +13,8 @@
     },
     "keywords": [],
     "author": "",
-    "license": "ISC",
-    "type": "commonjs",
+    "license": "MIT",
+    "type": "module",
     "bugs": {
         "url": "https://github.com/0xrpheus/epidaurus/issues"
     },
@@ -22,5 +22,11 @@
     "devDependencies": {
         "electron": "^40.6.1",
         "electron-builder": "^26.8.1"
+    },
+    "dependencies": {
+        "@google/generative-ai": "^0.24.1",
+        "cors": "^2.8.6",
+        "dotenv": "^17.3.1",
+        "express": "^5.2.1"
     }
 }
